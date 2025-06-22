@@ -343,7 +343,7 @@ jobs:
       # Get the Latest Tag from GitHub
       - name: 生成和创建新标签
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
             # Fetch the latest tag from GitHub (this is the latest tag based on the GitHub API)
             LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name')
@@ -403,6 +403,8 @@ jobs:
           body: ${{ env.RELEASE_NOTES }}  # Pass the RELEASE_NOTES to the action
 
       - name: 动态上传发布资产
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           # 先传管理器
           echo "Uploading $file..."
