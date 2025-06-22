@@ -56,11 +56,11 @@ on:
         type: boolean
         default: false
 jobs:
-  get_manager:
-    uses: ./.github/workflows/get-manager.yml
-    secrets: inherit
-    with:
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
+#  get_manager:
+#    uses: ./.github/workflows/get-manager.yml
+#    secrets: inherit
+#    with:
+#      kernelsu_variant: ${{ inputs.kernelsu_variant }}
 
 #  build-kernel-a12-5-10:
 #    uses: ./.github/workflows/kernel-a12-5.10.yml
@@ -140,7 +140,7 @@ jobs:
       contents: write
       actions: write
     needs:
-        - get_manager
+        #- get_manager
         #- build-kernel-a12-5-10
         #- build-kernel-a13-5-10
         #- build-kernel-a13-5-15
