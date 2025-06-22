@@ -504,7 +504,7 @@ jobs:
 
           # Apply specific Makefile modification for kernel versions 6.1 and 6.6 only
           if [ "${{ inputs.kernel_version }}" = "6.1" ] || [ "${{ inputs.kernel_version }}" = "6.6" ]; then
-            sed -i -e 's|\$(preempt-flag-y) \"\$(build-timestamp)\"|\$(preempt-flag-y) \"Thu Jul 11 07:05:47 UTC 2024\"|' ./common/init/Makefile
+            sed -i -e "s|\$(preempt-flag-y) \"\$(build-timestamp)\"|\$(preempt-flag-y) \"$CURRENT_TIME\"|" ./common/init/Makefile
           fi
           
           if [ -f "build/build.sh" ]; then
