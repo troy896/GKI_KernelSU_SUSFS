@@ -149,7 +149,7 @@ jobs:
         #- build-kernel-a15-6-6
     if: ${{ inputs.make_release }}
     env:
-      REPO_OWNER: Kavi
+      REPO_OWNER: ShirkNeko
       REPO_NAME: GKI_KernelSU_SUSFS
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
