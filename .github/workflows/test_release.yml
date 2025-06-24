@@ -1,8 +1,8 @@
 name: 测试发布
 
 permissions:
-  contents: write  # Allow writing to repository contents (for pushing tags)
-  actions: write   # Allows triggering actions
+  contents: write
+  actions: write
   
 on:
   workflow_dispatch:
@@ -13,7 +13,6 @@ on:
         type: boolean
         default: true
       kernelsu_variant:
-        # description: "选择 KernelSU | 注意:选中MKSU时为标准版"
         description: "选择 KernelSU"
         required: true
         type: choice
@@ -32,10 +31,6 @@ on:
           - Dev(开发)
           - Other(其他/指定)
         default: Dev(开发)
-      # kernelsu_branch_other:
-      #   description: "如果选择了 “其他”，请指定您的自定义分支"
-      #   required: false
-      #   type: string  # This input is required if 'Other' is chosen
       version:
         description: '自定义版本名(如5.10.198后面的字符/留空则使用默认版本号)'
         required: false
@@ -69,7 +64,6 @@ jobs:
 #      make_release: true
 #      kernelsu_variant: ${{ inputs.kernelsu_variant }}
 #      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
 #      version: ${{ inputs.version }}
 #      use_zram: ${{ inputs.use_zram }}
 #      use_kpm: ${{ inputs.use_kpm }}
@@ -81,7 +75,6 @@ jobs:
 #      make_release: ${{ inputs.make_release }}
 #      kernelsu_variant: ${{ inputs.kernelsu_variant }}
 #      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
 #      version: ${{ inputs.version }}
 #      use_zram: ${{ inputs.use_zram }}
 #      use_kpm: ${{ inputs.use_kpm }}
@@ -93,7 +86,6 @@ jobs:
 #      make_release: ${{ inputs.make_release }}
 #      kernelsu_variant: ${{ inputs.kernelsu_variant }}
 #      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
 #      version: ${{ inputs.version }}
 #      use_zram: ${{ inputs.use_zram }}
 #      use_kpm: ${{ inputs.use_kpm }}
@@ -105,7 +97,6 @@ jobs:
 #      make_release: ${{ inputs.make_release }}
 #      kernelsu_variant: ${{ inputs.kernelsu_variant }}
 #      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
 #      version: ${{ inputs.version }}
 #      use_zram: ${{ inputs.use_zram }}
 #      use_kpm: ${{ inputs.use_kpm }}
@@ -117,7 +108,6 @@ jobs:
       make_release: ${{ inputs.make_release }}
       kernelsu_variant: ${{ inputs.kernelsu_variant }}
       kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
       version: ${{ inputs.version }}
       use_zram: ${{ inputs.use_zram }}
       use_kpm: ${{ inputs.use_kpm }}
@@ -129,7 +119,6 @@ jobs:
 #      make_release: ${{ inputs.make_release }}
 #      kernelsu_variant: ${{ inputs.kernelsu_variant }}
 #      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      # kernelsu_branch_other: ${{ inputs.kernelsu_branch_other }}
 #      version: ${{ inputs.version }}
 #      use_zram: ${{ inputs.use_zram }}
 #      use_kpm: ${{ inputs.use_kpm }}
@@ -149,7 +138,7 @@ jobs:
         #- build-kernel-a15-6-6
     if: ${{ inputs.make_release }}
     env:
-      REPO_OWNER: guruji-byte  # Changed to your username
+      REPO_OWNER: guruji-byte
       REPO_NAME: GKI_KernelSU_SUSFS
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -182,16 +171,14 @@ jobs:
         -> https://github.com/sidex15/ksu_module_susfs
         
     steps:
-      # Checkout the code with full history and tags
       - name: Checkout code
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required to access tags
+          fetch-depth: 0
 
       - name: 确定分支为 KernelSU-${{ inputs.kernelsu_variant }}
         if: ${{ inputs.kernelsu_branch == 'Dev(开发)' || inputs.kernelsu_variant == 'MKSU' || inputs.kernelsu_variant == 'SukiSU'  }}
         run: |
-          # Determine the branch based on user input
           if [[ "${{ inputs.kernelsu_variant }}" == "Official" || "${{ inputs.kernelsu_variant }}" == "MKSU" ]]; then
             BRANCH="main"
           elif [[ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
@@ -202,66 +189,48 @@ jobs:
             echo "Error: Custom branch not provided for 'Other(其他/指定)'" >&2
             exit 1
           fi
-
-          # Store the selected branch in GITHUB_ENV
           echo "KSU_BRANCH=$BRANCH" >> $GITHUB_ENV
 
-      - name: 获取提交哈希值或标签并生成 URL 于 KernelSU-${{ inputs.kernelsu_variant }}
+      - name: 获取提交哈希值或标签并生成 URL
         run: |
           if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
-            echo "This is the Official variant"
             REPO_URL="https://github.com/tiann/KernelSU.git"
             REPO_URL2="tiann/KernelSU"
           elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "This is the Next variant"
             REPO_URL="https://github.com/KernelSU-Next/KernelSU-Next.git"
             REPO_URL2="KernelSU-Next/KernelSU-Next"
           elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
-            echo "This is the MKSU variant"
             REPO_URL="https://github.com/5ec1cff/KernelSU.git"
             REPO_URL2="5ec1cff/KernelSU"
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "This is the SukiSU variant"
             REPO_URL="https://github.com/ShirkNeko/KernelSU.git"
             REPO_URL2="ShirkNeko/KernelSU"
           else
             echo "Unknown variant"
+            exit 1
           fi
           
           if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" ]]; then
-            # Fetch the latest tag
             TAG=$(git ls-remote --tags --sort=-v:refname $REPO_URL | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
-            if [[ -z "$TAG" ]]; then
-              echo "Error: Could not fetch latest tag for Stable(标准)" >&2
-              exit 1
-            fi
+            [[ -z "$TAG" ]] && { echo "Error: Could not fetch latest tag" >&2; exit 1; }
             KSU_REF=$TAG
             KSU_URL="https://github.com/$REPO_URL2/releases/tag/$TAG"
-
           elif [[ "${{ inputs.kernelsu_branch }}" == "Dev(开发)" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
-            # Fetch the latest commit from "next" branch
             COMMIT_HASH=$(git ls-remote $REPO_URL refs/heads/$KSU_BRANCH | awk '{ print $1 }')
-            if [[ -z "$COMMIT_HASH" ]]; then
-              echo "Error: Could not fetch latest commit for Dev(开发)" >&2
-              exit 1
-            fi
+            [[ -z "$COMMIT_HASH" ]] && { echo "Error: Could not fetch latest commit" >&2; exit 1; }
             KSU_REF=$COMMIT_HASH
             KSU_URL="https://github.com/$REPO_URL2/commit/$COMMIT_HASH"
           fi
 
-          # Echo the values to GitHub environment for later use
           echo "KSU_REF=$KSU_REF" >> $GITHUB_ENV
           echo "KSU_URL=$KSU_URL" >> $GITHUB_ENV
-          echo "KernelSU Reference: $KSU_REF"
-          echo "KernelSU URL: $KSU_URL"
 
-      # Dynamic commit detection for SUSFS - only shows commits for built kernels
       - name: 获取 SUSFS 提交信息 (动态)
         run: |
           GITLAB_OWNER="simonpunk"
           GITLAB_REPO="susfs4ksu"
           
-          # Map job IDs to SUSFS branches
+          # Define job-to-branch mapping
           declare -A BRANCH_MAP=(
             ["build-kernel-a12-5-10"]="gki-android12-5.10"
             ["build-kernel-a13-5-10"]="gki-android13-5.10"
@@ -271,173 +240,123 @@ jobs:
             ["build-kernel-a15-6-6"]="gki-android15-6.6"
           )
           
-          # Initialize variable to store commit information
           COMMIT_INFO=""
-          
-          # Loop through all possible jobs
           for job_id in "${!BRANCH_MAP[@]}"; do
-            # Check if this job is in the needs list
-            if grep -q "$job_id" <<< "$NEEDS_LIST"; then
+            # Only process if job is in needs list
+            if [[ "${{ contains(needs.*.result, job_id) }}" == "true" ]]; then
               branch_name="${BRANCH_MAP[$job_id]}"
-              echo "Checking SUSFS branch for job: $job_id -> $branch_name"
-              
               COMMIT_HASH=$(git ls-remote https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO.git refs/heads/$branch_name | awk '{ print $1 }')
-              
               if [[ -n "$COMMIT_HASH" ]]; then
                 COMMIT_URL="https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO/-/commit/$COMMIT_HASH"
-                echo "  - $branch_name: $COMMIT_HASH"
-                
-                # Add to commit info for release notes
                 COMMIT_INFO+="  - $branch_name: [$COMMIT_HASH]($COMMIT_URL)"$'\n'
               fi
             fi
           done
           
-          # Store the formatted commit info
           echo "COMMIT_INFO<<EOF" >> $GITHUB_ENV
           echo "$COMMIT_INFO" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-        env:
-          # Get list of needed jobs from workflow context
-          NEEDS_LIST: ${{ toJSON(needs) }}
 
-      - name: 将提交哈希值和链接添加到 `RELEASE_NOTES` 中，并将 KernelSU-Next 引用添加到 `RELEASE_NOTES` 中。
+      - name: 添加管理器信息到RELEASE_NOTES
         run: |
-          if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
-            echo "This is the Official variant"
-            echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-            echo "$RELEASE_NOTES" >> $GITHUB_ENV
-            echo "Official 管理器:" >> $GITHUB_ENV
-            echo "-> https://github.com/tiann/KernelSU" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-          elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "This is the Next variant"
-            echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-            echo "$RELEASE_NOTES" >> $GITHUB_ENV
-            echo "Next 管理器:" >> $GITHUB_ENV
-            echo "-> https://github.com/KernelSU-Next/KernelSU-Next" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-          elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
-            echo "This is the MKSU variant"
-            echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-            echo "$RELEASE_NOTES" >> $GITHUB_ENV
-            echo "MKSU 管理器:" >> $GITHUB_ENV
-            echo "-> https://github.com/5ec1cff/KernelSU" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "This is the SukiSU variant"
-            echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-            echo "$RELEASE_NOTES" >> $GITHUB_ENV
-            echo "SukiSU 管理器:" >> $GITHUB_ENV
-            echo "-> https://github.com/ShirkNeko/SukiSU-Ultra" >> $GITHUB_ENV
-            echo "EOF" >> $GITHUB_ENV
-          else
-            echo "Unknown variant"
-          fi
+          case "${{ inputs.kernelsu_variant }}" in
+            "Official")
+              MANAGER_INFO="Official 管理器:\n-> https://github.com/tiann/KernelSU"
+              ;;
+            "Next")
+              MANAGER_INFO="Next 管理器:\n-> https://github.com/KernelSU-Next/KernelSU-Next"
+              ;;
+            "MKSU")
+              MANAGER_INFO="MKSU 管理器:\n-> https://github.com/5ec1cff/KernelSU"
+              ;;
+            "SukiSU")
+              MANAGER_INFO="SukiSU 管理器:\n-> https://github.com/ShirkNeko/SukiSU-Ultra"
+              ;;
+          esac
           
-      - name: 将 SUSFS 提交信息添加到 `RELEASE_NOTES`
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "$RELEASE_NOTES" >> $GITHUB_ENV
+          echo -e "\n$MANAGER_INFO" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: 添加提交信息到RELEASE_NOTES
         run: |
           echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
           echo "$RELEASE_NOTES" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "LTO: thin" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
+          echo -e "\nLTO: thin\n" >> $GITHUB_ENV
           echo "<details>" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "<summary>提交信息</summary>" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "提交的哈希值与链接(以下提交指的是,本次编译时,KSU或SUSFS所在的进度):" >> $GITHUB_ENV
-          echo "- **KernelSU为${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}** (提交): [$KSU_REF]($KSU_URL)" >> $GITHUB_ENV
-          echo "- **SUSFS4KSU** (提交):" >> $GITHUB_ENV
+          echo -e "\n<summary>提交信息</summary>\n" >> $GITHUB_ENV
+          echo "提交的哈希值与链接:" >> $GITHUB_ENV
+          echo "- **KernelSU为${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}**: [$KSU_REF]($KSU_URL)" >> $GITHUB_ENV
+          echo "- **SUSFS4KSU**:" >> $GITHUB_ENV
           echo "${{ env.COMMIT_INFO }}" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "</details>" >> $GITHUB_ENV
+          echo -e "\n</details>" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
-          
-      # Get the Latest Tag from GitHub
+
       - name: 生成和创建新标签
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            # Fetch the latest tag from YOUR repository
-            LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name')
-            if [ -z "$LATEST_TAG" ]; then
-              LATEST_TAG="v1.5.5-r0"
-            fi
-            
-            NEW_TAG=$(echo "$LATEST_TAG" | awk -F'-r' '{suffix=$2; if (!suffix) suffix=0; suffix++; printf "%s-r%d", $1, suffix}')
-            
-            # Output the new tag to be used
-            echo "New tag: $NEW_TAG"
-            
-            # Set the new tag as an environment variable
-            echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
-            
-            # Create the tag and push to YOUR repository
-            git tag $NEW_TAG
-            git push "https://${{ github.actor }}:${{ secrets.GITHUB_TOKEN }}@github.com/guruji-byte/GKI_KernelSU_SUSFS.git" $NEW_TAG
+          LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' || true)
+          [[ -z "$LATEST_TAG" ]] && LATEST_TAG="v1.0.0-r0"
+          
+          if [[ $LATEST_TAG =~ (.*-r)([0-9]+)$ ]]; then
+            NEW_SUFFIX=$((${BASH_REMATCH[2]} + 1))
+            NEW_TAG="${BASH_REMATCH[1]}$NEW_SUFFIX"
+          else
+            NEW_TAG="${LATEST_TAG}-r1"
+          fi
+          
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          git tag $NEW_TAG
+          git push origin $NEW_TAG
 
-      # 下载 A12 的附件（仅当 A12 生成成功或输入为 true 或为空时）
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./downloaded-artifacts
-          
+
       - name: 设定 KSU 环境变量
         run: |
-          if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "This is the Next variant"
-            git clone https://github.com/KernelSU-Next/KernelSU-Next.git
-            cd KernelSU-Next
-            KSU_GIT_VERSION=$(git rev-list --count HEAD)
-            KSU_VERSION=$((10000 + KSU_GIT_VERSION + 200))
-            echo $KSU_VERSION
-            echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
-            echo "RELEASE_NAME=${{ env.RELEASE_NAME }}($KSU_VERSION) & SUSFS v1.5.7" >> $GITHUB_ENV
-          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "This is the SukiSU variant"
-            git clone https://github.com/SukiSU-Ultra/SukiSU-Ultra.git
-            cd SukiSU-Ultra
-            KSU_GIT_VERSION=$(git rev-list --count HEAD)
-            KSU_VERSION=$((10000 + KSU_GIT_VERSION + 606))
-            echo $KSU_VERSION
-            echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
-            echo "RELEASE_NAME=${{ env.RELEASE_NAME }}($KSU_VERSION) & SUSFS v1.5.7" >> $GITHUB_ENV
-          else
-            echo "Unknown variant"
-          fi
+          case "${{ inputs.kernelsu_variant }}" in
+            "Next")
+              git clone --depth=1 https://github.com/KernelSU-Next/KernelSU-Next.git
+              cd KernelSU-Next
+              KSU_VERSION=$((10000 + $(git rev-list --count HEAD) + 200))
+              echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
+              echo "RELEASE_NAME=\"GKI内核: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v1.5.7\"" >> $GITHUB_ENV
+              ;;
+            "SukiSU")
+              git clone --depth=1 https://github.com/SukiSU-Ultra/SukiSU-Ultra.git
+              cd SukiSU-Ultra
+              KSU_VERSION=$((10000 + $(git rev-list --count HEAD) + 606))
+              echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
+              echo "RELEASE_NAME=\"GKI内核: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v1.5.7\"" >> $GITHUB_ENV
+              ;;
+            *)
+              echo "RELEASE_NAME=\"GKI内核: ${{ inputs.kernelsu_variant }} & SUSFS v1.5.7\"" >> $GITHUB_ENV
+              ;;
+          esac
 
-      # 如果 make_release 为 true，则创建 GitHub 发布并上传文件
       - name: Create GitHub Release
         uses: actions/create-release@v1
-        with:
-          tag_name: ${{ env.NEW_TAG }}  # Use the generated tag for the release
-          prerelease: true  # Mark the release as a pre-release
-          release_name: ${{ env.RELEASE_NAME }} # Pass the RELEASE_NAME to the action
-          body: ${{ env.RELEASE_NOTES }}  # Pass the RELEASE_NOTES to the action
-
-      - name: 动态上传发布资产
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          # 上传管理器文件
-          if ls ./downloaded-artifacts/*Manager*/* 1> /dev/null 2>&1; then
-            echo "上传管理器文件..."
-            gh release upload ${{ env.NEW_TAG }} ./downloaded-artifacts/*Manager*/*
-          fi
-          
-          # 上传内核文件
-          for dir in ./downloaded-artifacts/*_kernel-*; do
-            if [ -d "$dir" ]; then
-              echo "上传 $dir 中的文件..."
-              gh release upload ${{ env.NEW_TAG }} $dir/*
-            fi
-          done
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ env.NEW_TAG }}
+          prerelease: true
+          release_name: ${{ env.RELEASE_NAME }}
+          body: ${{ env.RELEASE_NOTES }}
 
-      - name: Display Files Uploaded
+      - name: 上传发布资产
         run: |
-          echo "GitHub release created with the following files:"
-          find ./downloaded-artifacts -type f
+          # Upload all artifacts
+          find ./downloaded-artifacts -type f -exec gh release upload ${{ env.NEW_TAG }} {} +
+
+      - name: 显示上传文件
+        run: find ./downloaded-artifacts -type f | xargs -I{} echo "Uploaded: {}"
 
      # - name: send telegram message on push
      #   env:
