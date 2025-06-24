@@ -350,13 +350,27 @@ jobs:
           release_name: ${{ env.RELEASE_NAME }}
           body: ${{ env.RELEASE_NOTES }}
 
+      # RELIABLE ARTIFACT UPLOAD METHOD
       - name: 上传发布资产
         run: |
-          # Upload all artifacts
-          find ./downloaded-artifacts -type f -exec gh release upload ${{ env.NEW_TAG }} {} +
+          # 上传管理器文件
+          if ls ./downloaded-artifacts/*Manager*/* 1> /dev/null 2>&1; then
+            echo "上传管理器文件..."
+            gh release upload ${{ env.NEW_TAG }} ./downloaded-artifacts/*Manager*/*
+          fi
+          
+          # 上传内核文件
+          for dir in ./downloaded-artifacts/*_kernel-*; do
+            if [ -d "$dir" ]; then
+              echo "上传 $dir 中的文件..."
+              gh release upload ${{ env.NEW_TAG }} $dir/*
+            fi
+          done
 
       - name: 显示上传文件
-        run: find ./downloaded-artifacts -type f | xargs -I{} echo "Uploaded: {}"
+        run: |
+          echo "已上传文件:"
+          find ./downloaded-artifacts -type f
 
      # - name: send telegram message on push
      #   env:
