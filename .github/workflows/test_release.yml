@@ -243,7 +243,7 @@ jobs:
           COMMIT_INFO=""
           for job_id in "${!BRANCH_MAP[@]}"; do
             # Only process if job is in needs list
-            if [[ "${{ contains(needs.*.result, job_id) }}" == "true" ]]; then
+            if [[ " ${{ join(needs.*.result, ' ') }} " == *"$job_id"* ]]; then
               branch_name="${BRANCH_MAP[$job_id]}"
               COMMIT_HASH=$(git ls-remote https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO.git refs/heads/$branch_name | awk '{ print $1 }')
               if [[ -n "$COMMIT_HASH" ]]; then
@@ -350,7 +350,6 @@ jobs:
           release_name: ${{ env.RELEASE_NAME }}
           body: ${{ env.RELEASE_NOTES }}
 
-      # RELIABLE ARTIFACT UPLOAD METHOD
       - name: 上传发布资产
         run: |
           # 上传管理器文件
