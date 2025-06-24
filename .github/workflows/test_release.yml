@@ -397,6 +397,7 @@ jobs:
       - name: Create GitHub Release
         uses: actions/create-release@v1
         with:
+          token: ${{ secrets.GITHUB_TOKEN }}
           tag_name: ${{ env.NEW_TAG }}  # Use the generated tag for the release
           prerelease: true  # Mark the release as a pre-release
           release_name: ${{ env.RELEASE_NAME }} # Pass the RELEASE_NAME to the action
