@@ -217,20 +217,22 @@ jobs:
           
           COMMIT_INFO=""
           for job_id in "${!BRANCH_MAP[@]}"; do
-          # Only process if job is in needs list 
-           if [[ " ${{ join(needs.*.result, ' ') }} " == *"$job_id"* ]]; then
-            branch_name="${BRANCH_MAP[$job_id]}" 
-            COMMIT_HASH=$(git ls-remote https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO.git refs/heads/$branch_name | awk '{ print $1 }') 
-             if [[ -n "$COMMIT_HASH" ]]; then 
-            COMMIT_URL="https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO/-/commit/$COMMIT_HASH" 
-            COMMIT_INFO+="  - $branch_name: [$COMMIT_HASH]($COMMIT_URL)"$'\n' # Added two spaces for proper Markdown list
-             fi 
-           fi 
+            # Only process if job is in needs list
+            # THIS IS THE CRUCIAL LINE FIX:
+            if [[ " ${{ join(needs.*.result, ' ') }} " == *"$job_id"* ]]; then 
+              branch_name="${BRANCH_MAP[$job_id]}" 
+              COMMIT_HASH=$(git ls-remote https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO.git refs/heads/$branch_name | awk '{ print $1 }') 
+              if [[ -n "$COMMIT_HASH" ]]; then 
+                COMMIT_URL="https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO/-/commit/$COMMIT_HASH" 
+                COMMIT_INFO+="  - $branch_name: [$COMMIT_HASH]($COMMIT_URL)"$'\n' # Added two spaces for proper Markdown list
+              fi 
+            fi 
           done
-    
-           echo "COMMIT_INFO<<EOF" >> $GITHUB_ENV
+          
+          echo "COMMIT_INFO<<EOF" >> $GITHUB_ENV
           echo "$COMMIT_INFO" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
+
 
       - name: Initialize RELEASE_NOTES
         run: |
