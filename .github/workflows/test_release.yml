@@ -235,12 +235,12 @@ jobs:
           
           # Define job-to-branch mapping with the internal variable names
           declare -A BRANCH_MAP=(
-            ["gki_android12_5_10"]="gki-android12-5.10"
-            ["gki_android13_5_10"]="gki-android13-5.10"
-            ["gki_android13_5_15"]="gki-android13-5.15"
-            ["gki_android14_5_15"]="gki-android14-5.15"
-            ["gki_android14_6_1"]="gki-android14-6.1"
-            ["gki_android15_6_6"]="gki-android15-6.6"
+            ["build-kernel-a12-5-10"]="gki-android12-5.10"
+            ["build-kernel-a13-5-10"]="gki-android13-5.10"
+            ["build-kernel-a13-5-15"]="gki-android13-5.15"
+            ["build-kernel-a14-5-15"]="gki-android14-5.15"
+            ["build-kernel-a14-6-1"]="gki-android14-6.1"
+            ["build-kernel-a15-6-6"]="gki-android15-6.6"
           )
           
           # This map stores the success status from 'needs', but we iterate directly
