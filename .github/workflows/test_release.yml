@@ -1,4 +1,4 @@
-name: Test Release
+Name: Test Release
 
 permissions:
   contents: write
@@ -186,12 +186,12 @@ jobs:
           fi
           
           if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" ]]; then
-            TAG=$(git ls-remote --tags --sort=-v:refname $REPO_URL | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
+            TAG=$(git ls-remote --tags --sort=-v:refname "$REPO_URL" | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
             [[ -z "$TAG" ]] && { echo "Error: Could not fetch latest tag" >&2; exit 1; }
             KSU_REF=$TAG
             KSU_URL="https://github.com/$REPO_URL2/releases/tag/$TAG"
           elif [[ "${{ inputs.kernelsu_branch }}" == "Dev(开发)" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
-            COMMIT_HASH=$(git ls-remote $REPO_URL refs/heads/$KSU_BRANCH | awk '{ print $1 }')
+            COMMIT_HASH=$(git ls-remote "$REPO_URL" refs/heads/$KSU_BRANCH | awk '{ print $1 }') # Corrected awk syntax
             [[ -z "$COMMIT_HASH" ]] && { echo "Error: Could not fetch latest commit" >&2; exit 1; }
             KSU_REF=$COMMIT_HASH
             KSU_URL="https://github.com/$REPO_URL2/commit/$COMMIT_HASH"
@@ -205,6 +205,11 @@ jobs:
           GITLAB_OWNER="simonpunk"
           GITLAB_REPO="susfs4ksu"
           
+          # Pass the entire needs context as JSON to the script and extract results
+          # 'jq' is used here to parse the JSON and create an associative array for bash.
+          # This line will create a map like: [job_id]="success" or [job_id]="failure"
+          eval "declare -A NEEDS_RESULTS_MAP=$(echo '${{ toJSON(needs) }}' | jq -c 'to_entries | map({key: .key, value: .value.result}) | from_entries' | sed 's/[{}]//g; s/: /=/g; s/, / /g; s/"//g')"
+
           # Define job-to-branch mapping
           declare -A BRANCH_MAP=(
             ["build-kernel-a12-5-10"]="gki-android12-5.10"
@@ -217,9 +222,9 @@ jobs:
           
           COMMIT_INFO=""
           for job_id in "${!BRANCH_MAP[@]}"; do
-            # Only process if job is in needs list
-            # THIS IS THE CRUCIAL LINE FIX:
-            if [[ " ${{ join(needs.*.result, ' ') }} " == *"$job_id"* ]]; then 
+            # Check if the job exists in NEEDS_RESULTS_MAP and was successful
+            # This checks the actual result of each specific job.
+            if [[ "${NEEDS_RESULTS_MAP[$job_id]}" == "success" ]]; then
               branch_name="${BRANCH_MAP[$job_id]}" 
               COMMIT_HASH=$(git ls-remote https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO.git refs/heads/$branch_name | awk '{ print $1 }') 
               if [[ -n "$COMMIT_HASH" ]]; then 
@@ -229,39 +234,43 @@ jobs:
             fi 
           done
           
-          echo "COMMIT_INFO<<EOF" >> $GITHUB_ENV
-          echo "$COMMIT_INFO" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          # Optional: Add this for debugging to see the content of COMMIT_INFO
+          # echo "Debug COMMIT_INFO:"
+          # echo "$COMMIT_INFO"
+          
+          echo "COMMIT_INFO<<EOF" >> "$GITHUB_ENV"
+          echo "$COMMIT_INFO" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
 
 
       - name: Initialize RELEASE_NOTES
         run: |
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          echo "This release includes **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU' || '' }}${{ inputs.kernelsu_variant }}, please note the KSU version here**, SUSFS v1.5.7, LZ4KD" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV # Add a blank line for spacing
-          echo "Features:" >> $GITHUB_ENV
-          echo "-> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}" >> $GITHUB_ENV
-          echo "-> SUSFS ඞ v1.5.8" >> $GITHUB_ENV
-          echo "-> Manual Syscall Hooks for better hiding effect" >> $GITHUB_ENV
-          echo "-> Magic Mount support" >> $GITHUB_ENV
-          echo "-> Simple hiding of LineageOS detection" >> $GITHUB_ENV
-          echo "-> Futile hiding of jit-zygote-cache detection" >> $GITHUB_ENV
-          echo "-> Wireguard support" >> $GITHUB_ENV
-          echo "-> BBR support" >> $GITHUB_ENV
-          echo "${{ inputs.use_kpm && '-> KPM support' || '' }}" >> $GITHUB_ENV
-          echo "-> **LZ4KD&ONEPLUS_LZ4K** ${{ inputs.use_zram && 'supported' || 'not supported' }}" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "<details>" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "<summary>Notes:</summary>" >> $GITHUB_ENV
-          echo "- -> In SUS SU Mode 2, it will show as disabled or incompatible because non-kprobe hooks were used (when compiling the kernel) and are no longer needed!" >> $GITHUB_ENV
-          echo "- -> With the latest version of SUSFS, flashing AK3 compressed packages with Kernel Flasher will brick your device. Try https://github.com/libxzr/HorizonKernelFlasher!" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "</details>" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "Modules:" >> $GITHUB_ENV
-          echo "-> https://github.com/sidex15/ksu_module_susfs" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "RELEASE_NOTES<<EOF" >> "$GITHUB_ENV"
+          echo "This release includes **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU' || '' }}${{ inputs.kernelsu_variant }}, please note the KSU version here**, SUSFS v1.5.8, LZ4KD" >> "$GITHUB_ENV" # Updated SUSFS version
+          echo "" >> "$GITHUB_ENV" # Add a blank line for spacing
+          echo "Features:" >> "$GITHUB_ENV"
+          echo "-> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}" >> "$GITHUB_ENV"
+          echo "-> SUSFS ඞ v1.5.8" >> "$GITHUB_ENV" # Updated SUSFS version
+          echo "-> Manual Syscall Hooks for better hiding effect" >> "$GITHUB_ENV"
+          echo "-> Magic Mount support" >> "$GITHUB_ENV"
+          echo "-> Simple hiding of LineageOS detection" >> "$GITHUB_ENV"
+          echo "-> Futile hiding of jit-zygote-cache detection" >> "$GITHUB_ENV"
+          echo "-> Wireguard support" >> "$GITHUB_ENV"
+          echo "-> BBR support" >> "$GITHUB_ENV"
+          echo "${{ inputs.use_kpm && '-> KPM support' || '' }}" >> "$GITHUB_ENV"
+          echo "-> **LZ4KD&ONEPLUS_LZ4K** ${{ inputs.use_zram && 'supported' || 'not supported' }}" >> "$GITHUB_ENV"
+          echo "" >> "$GITHUB_ENV"
+          echo "<details>" >> "$GITHUB_ENV"
+          echo "" >> "$GITHUB_ENV"
+          echo "<summary>Notes:</summary>" >> "$GITHUB_ENV"
+          echo "- -> In SUS SU Mode 2, it will show as disabled or incompatible because non-kprobe hooks were used (when compiling the kernel) and are no longer needed!" >> "$GITHUB_ENV"
+          echo "- -> With the latest version of SUSFS, flashing AK3 compressed packages with Kernel Flasher will brick your device. Try https://github.com/libxzr/HorizonKernelFlasher!" >> "$GITHUB_ENV"
+          echo "" >> "$GITHUB_ENV"
+          echo "</details>" >> "$GITHUB_ENV"
+          echo "" >> "$GITHUB_ENV"
+          echo "Modules:" >> "$GITHUB_ENV"
+          echo "-> https://github.com/sidex15/ksu_module_susfs" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
 
       - name: Add manager info to RELEASE_NOTES
         run: |
@@ -280,30 +289,30 @@ jobs:
               ;;
           esac
           
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          echo "$RELEASE_NOTES" >> $GITHUB_ENV # Append existing notes
-          echo -e "\n$MANAGER_INFO" >> $GITHUB_ENV # Append manager info
-          echo "EOF" >> $GITHUB_ENV
+          echo "RELEASE_NOTES<<EOF" >> "$GITHUB_ENV"
+          echo "$RELEASE_NOTES" >> "$GITHUB_ENV" # Append existing notes
+          echo -e "\n$MANAGER_INFO" >> "$GITHUB_ENV" # Append manager info
+          echo "EOF" >> "$GITHUB_ENV"
 
       - name: Add commit info to RELEASE_NOTES
         run: |
-          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          echo "$RELEASE_NOTES" >> $GITHUB_ENV # Append existing notes
-          echo -e "\nLTO: thin\n" >> $GITHUB_ENV
-          echo "<details>" >> $GITHUB_ENV
-          echo -e "\n<summary>Commit Info</summary>\n" >> $GITHUB_ENV
-          echo "Commit hash and links:" >> $GITHUB_ENV
-          echo "- **KernelSU is ${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}**: [$KSU_REF]($KSU_URL)" >> $GITHUB_ENV
-          echo "- **SUSFS4KSU**:" >> $GITHUB_ENV
-          echo "${{ env.COMMIT_INFO }}" >> $GITHUB_ENV 
-          echo -e "\n</details>" >> $GITHUB_ENV
-          echo "EOF" >> $GITHUB_ENV
+          echo "RELEASE_NOTES<<EOF" >> "$GITHUB_ENV"
+          echo "$RELEASE_NOTES" >> "$GITHUB_ENV" # Append existing notes
+          echo -e "\nLTO: thin\n" >> "$GITHUB_ENV"
+          echo "<details>" >> "$GITHUB_ENV"
+          echo -e "\n<summary>Commit Info</summary>\n" >> "$GITHUB_ENV"
+          echo "Commit hash and links:" >> "$GITHUB_ENV"
+          echo "- **KernelSU is ${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}**: [$KSU_REF]($KSU_URL)" >> "$GITHUB_ENV"
+          echo "- **SUSFS4KSU**:" >> "$GITHUB_ENV"
+          echo "${{ env.COMMIT_INFO }}" >> "$GITHUB_ENV" # This will now be populated
+          echo -e "\n</details>" >> "$GITHUB_ENV"
+          echo "EOF" >> "$GITHUB_ENV"
 
       - name: Generate and create new tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' || true)
+          LATEST_TAG=$(gh api repos/"$REPO_OWNER"/"$REPO_NAME"/tags --jq '.[0].name' || true)
           [[ -z "$LATEST_TAG" ]] && LATEST_TAG="v1.0.0-r0"
           
           if [[ $LATEST_TAG =~ (.*-r)([0-9]+)$ ]]; then
@@ -313,11 +322,11 @@ jobs:
             NEW_TAG="${LATEST_TAG}-r1"
           fi
           
-          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
+          echo "NEW_TAG=$NEW_TAG" >> "$GITHUB_ENV"
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
-          git tag $NEW_TAG
-          git push origin $NEW_TAG
+          git tag "$NEW_TAG"
+          git push origin "$NEW_TAG"
 
       - name: Download Artifacts
         uses: actions/download-artifact@v4
@@ -326,23 +335,25 @@ jobs:
 
       - name: Set KSU Environment Variables
         run: |
+          # Define a variable for SUSFS_VERSION to easily update it if needed
+          SUSFS_VERSION="1.5.8" # Updated SUSFS version
           case "${{ inputs.kernelsu_variant }}" in
             "Next")
               git clone --depth=1 https://github.com/KernelSU-Next/KernelSU-Next.git
               cd KernelSU-Next
               KSU_VERSION=$((10000 + $(git rev-list --count HEAD) + 200))
-              echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
-              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v1.5.7\"" >> $GITHUB_ENV
+              echo "KSU_VERSION=$KSU_VERSION" >> "$GITHUB_ENV"
+              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v$SUSFS_VERSION\"" >> "$GITHUB_ENV" # Updated SUSFS version
               ;;
             "SukiSU")
               git clone --depth=1 https://github.com/SukiSU-Ultra/SukiSU-Ultra.git
               cd SukiSU-Ultra
               KSU_VERSION=$((10000 + $(git rev-list --count HEAD) + 606))
-              echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
-              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v1.5.7\"" >> $GITHUB_ENV
+              echo "KSU_VERSION=$KSU_VERSION" >> "$GITHUB_ENV"
+              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v$SUSFS_VERSION\"" >> "$GITHUB_ENV" # Updated SUSFS version
               ;;
             *)
-              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS v1.5.7\"" >> $GITHUB_ENV
+              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS v$SUSFS_VERSION\"" >> "$GITHUB_ENV" # Updated SUSFS version
               ;;
           esac
 
@@ -361,14 +372,14 @@ jobs:
           # Upload manager files
           if ls ./downloaded-artifacts/*Manager*/* 1> /dev/null 2>&1; then
             echo "Uploading manager files..."
-            gh release upload ${{ env.NEW_TAG }} ./downloaded-artifacts/*Manager*/*
+            gh release upload "${{ env.NEW_TAG }}" ./downloaded-artifacts/*Manager*/*
           fi
           
           # Upload kernel files
           for dir in ./downloaded-artifacts/*_kernel-*; do
             if [ -d "$dir" ]; then
               echo "Uploading files from $dir..."
-              gh release upload ${{ env.NEW_TAG }} $dir/*
+              gh release upload "${{ env.NEW_TAG }}" "$dir"/*
             fi
           done
 
@@ -386,6 +397,6 @@ jobs:
      #       curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
      #       -d "chat_id=$TELEGRAM_CHAT_ID" \
      #       -d "message_thread_id=$TELEGRAM_MESSAGE_THREAD_ID" \
-     #       -d "text=Latest release: 
-     #       https://github.com/guruji-byte/GKI_KernelSU_SUSFS/releases/tag/${{ env.NEW_TAG }}
+     #       -d "text=Latest release: \
+     #       https://github.com/guruji-byte/GKI_KernelSU_SUSFS/releases/tag/${{ env.NEW_TAG }} \
      #       ${{ env.RELEASE_NOTES }}"
