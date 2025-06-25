@@ -4,15 +4,6 @@ permissions:
   contents: write
   actions: write
 
-# reusable anchor for kernel build args
-x-build-args: &build-args
-  make_release:     ${{ inputs.make_release }}
-  kernelsu_variant: ${{ inputs.kernelsu_variant }}
-  kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-  version:          ${{ inputs.version }}
-  use_zram:         ${{ inputs.use_zram }}
-  use_kpm:          ${{ inputs.use_kpm }}
-
 on:
   workflow_dispatch:
     inputs:
@@ -81,6 +72,15 @@ on:
         type: boolean
         default: false
 
+# now define your reusable args
+x-build-args: &build-args
+  make_release:     ${{ inputs.make_release }}
+  kernelsu_variant: ${{ inputs.kernelsu_variant }}
+  kernelsu_branch:  ${{ inputs.kernelsu_branch }}
+  version:          ${{ inputs.version }}
+  use_zram:         ${{ inputs.use_zram }}
+  use_kpm:          ${{ inputs.use_kpm }}
+
 jobs:
   get_manager:
     if: ${{ inputs.get_manager }}
@@ -138,10 +138,9 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+        with: { fetch-depth: 0 }
 
       - name: Determine KSU branch (Stable)
         if: ${{ inputs.kernelsu_branch == 'Stable(标准)' }}
@@ -157,10 +156,10 @@ jobs:
       - name: Fetch KernelSU ref & URL
         run: |
           case "${{ inputs.kernelsu_variant }}" in
-            Official) REPO_URL=https://github.com/tiann/KernelSU.git;       REPO=tiann/KernelSU ;;
+            Official) REPO_URL=https://github.com/tiann/KernelSU.git; REPO=tiann/KernelSU ;;
             Next)     REPO_URL=https://github.com/KernelSU-Next/KernelSU-Next.git; REPO=KernelSU-Next/KernelSU-Next ;;
-            MKSU)     REPO_URL=https://github.com/5ec1cff/KernelSU.git;     REPO=5ec1cff/KernelSU ;;
-            SukiSU)   REPO_URL=https://github.com/ShirkNeko/KernelSU.git;   REPO=ShirkNeko/KernelSU ;;
+            MKSU)     REPO_URL=https://github.com/5ec1cff/KernelSU.git; REPO=5ec1cff/KernelSU ;;
+            SukiSU)   REPO_URL=https://github.com/ShirkNeko/KernelSU.git; REPO=ShirkNeko/KernelSU ;;
           esac
 
           if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" && "${{ inputs.kernelsu_variant }}" != "SukiSU" ]]; then
@@ -177,25 +176,18 @@ jobs:
             REF=$(git ls-remote "$REPO_URL" refs/heads/$KSU_BRANCH | cut -f1)
             URL="https://github.com/$REPO/commit/$REF"
           fi
-
           echo "KSU_REF=$REF" >> $GITHUB_ENV
           echo "KSU_URL=$URL" >> $GITHUB_ENV
 
       - name: Bump tag & set release name
         run: |
           SUSFS_VERSION="1.5.8"
-          LATEST_TAG=$(git tag --list "v${SUSFS_VERSION}-r*" --sort=-v:refname | head -n1)
-          if [[ -z "$LATEST_TAG" ]]; then
-            NEXT=1
-          else
-            SUF=${LATEST_TAG##*-r}
-            NEXT=$((SUF + 1))
-          fi
+          LATEST=$(git tag --list "v${SUSFS_VERSION}-r*" --sort=-v:refname | head -n1)
+          if [[ -z "$LATEST" ]]; then NEXT=1; else SUF=${LATEST##*-r}; NEXT=$((SUF+1)); fi
           NEW_TAG="v${SUSFS_VERSION}-r${NEXT}"
-          git tag "$NEW_TAG"
-          git push origin "$NEW_TAG"
+          git tag "$NEW_TAG" && git push origin "$NEW_TAG"
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
-          echo "RELEASE_NAME=GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS ${SUSFS_VERSION} r${NEXT}" >> $GITHUB_ENV
+          echo "RELEASE_NAME=GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS ${SUSFS_VERSION}-r${NEXT}" >> $GITHUB_ENV
 
       - name: Build RELEASE_NOTES
         run: |
@@ -246,16 +238,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Manager APK(s)
           if ls ./downloaded-artifacts/*Manager*/*.apk >/dev/null 2>&1; then
             gh release upload "${{ env.NEW_TAG }}" ./downloaded-artifacts/*Manager*/*.apk
           fi
-          # Kernel outputs
           for dir in ./downloaded-artifacts/*_kernel-*; do
             [ -d "$dir" ] && gh release upload "${{ env.NEW_TAG }}" "$dir"/*
           done
 
       - name: Display uploaded files
         run: |
-          echo "Uploaded assets for ${{ env.NEW_TAG }}:"
           find ./downloaded-artifacts -type f
