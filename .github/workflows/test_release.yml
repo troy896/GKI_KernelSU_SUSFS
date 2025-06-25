@@ -151,23 +151,31 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine branch as KernelSU-${{ inputs.kernelsu_variant }}
+      - name: Determine KernelSU branch (Official/MKSU/SukiSU logic)
+        # This step sets KSU_BRANCH based on variant, for use in the next step
         if: ${{ inputs.kernelsu_branch == 'Dev(开发)' || inputs.kernelsu_variant == 'MKSU' || inputs.kernelsu_variant == 'SukiSU'  }}
         run: |
-          if [[ "${{ inputs.kernelsu_variant }}" == "Official" || "${{ inputs.kernelsu_variant }}" == "MKSU" ]]; then
+          BRANCH=""
+          if [[ "${{ inputs.kernelsu_variant }}" == "Official" ]]; then
             BRANCH="main"
           elif [[ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
-            BRANCH="main"
+            BRANCH="main" # Assuming SukiSU's main branch
           elif [[ "${{ inputs.kernelsu_variant }}" == "Next" ]]; then
             BRANCH="next"
+          elif [[ "${{ inputs.kernelsu_variant }}" == "MKSU" ]]; then
+            BRANCH="main" # Assuming MKSU's main branch
           else
-            echo "Error: Custom branch not provided for 'Other'" >&2
+            echo "Error: Custom branch not provided for 'Other' or unknown variant" >&2
             exit 1
           fi
           echo "KSU_BRANCH=$BRANCH" >> $GITHUB_ENV
 
-      - name: Get commit hash or tag and generate URL
+      - name: Get KernelSU commit hash or tag and generate URL
+        # This step sets KSU_REF and KSU_URL
         run: |
+          REPO_URL=""
+          REPO_URL2=""
+          
           if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
             REPO_URL="https://github.com/tiann/KernelSU.git"
             REPO_URL2="tiann/KernelSU"
@@ -185,72 +193,97 @@ jobs:
             exit 1
           fi
           
-          if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" ]]; then
+          KSU_REF=""
+          KSU_URL=""
+
+          if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" && "${{ inputs.kernelsu_variant }}" != "SukiSU" ]]; then
+            # For stable, try to get the latest tag
             TAG=$(git ls-remote --tags --sort=-v:refname "$REPO_URL" | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
-            [[ -z "$TAG" ]] && { echo "Error: Could not fetch latest tag" >&2; exit 1; }
-            KSU_REF=$TAG
-            KSU_URL="https://github.com/$REPO_URL2/releases/tag/$TAG"
+            if [[ -z "$TAG" ]]; then
+              echo "Warning: Could not fetch latest tag for Stable branch. Falling back to HEAD commit."
+              COMMIT_HASH=$(git ls-remote "$REPO_URL" HEAD | awk '{ print $1 }')
+              KSU_REF=$COMMIT_HASH
+              KSU_URL="https://github.com/$REPO_URL2/commit/$COMMIT_HASH"
+            else
+              KSU_REF=$TAG
+              KSU_URL="https://github.com/$REPO_URL2/releases/tag/$TAG"
+            fi
           elif [[ "${{ inputs.kernelsu_branch }}" == "Dev(开发)" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
-            COMMIT_HASH=$(git ls-remote "$REPO_URL" refs/heads/$KSU_BRANCH | awk '{ print $1 }') # Corrected awk syntax
-            [[ -z "$COMMIT_HASH" ]] && { echo "Error: Could not fetch latest commit" >&2; exit 1; }
+            # For Dev or specific variants, get the latest commit from KSU_BRANCH (set in previous step)
+            COMMIT_HASH=$(git ls-remote "$REPO_URL" refs/heads/$KSU_BRANCH | awk '{ print $1 }')
+            if [[ -z "$COMMIT_HASH" ]]; then
+              echo "Error: Could not fetch latest commit for KSU_BRANCH '$KSU_BRANCH'" >&2
+              exit 1
+            fi
             KSU_REF=$COMMIT_HASH
             KSU_URL="https://github.com/$REPO_URL2/commit/$COMMIT_HASH"
+          else
+            echo "Error: Unhandled KernelSU branch or variant combination." >&2
+            exit 1
           fi
 
           echo "KSU_REF=$KSU_REF" >> $GITHUB_ENV
           echo "KSU_URL=$KSU_URL" >> $GITHUB_ENV
+          echo "Debug KSU_REF: $KSU_REF"
+          echo "Debug KSU_URL: $KSU_URL"
 
-      - name: Get SUSFS commit info (dynamic)
+      - name: Get SUSFS commit info (dynamic) and set individual envs
+        # This step populates COMMIT_HASH_gki_androidXX_X_XX and COMMIT_URL_gki_androidXX_X_XX
         run: |
           GITLAB_OWNER="simonpunk"
           GITLAB_REPO="susfs4ksu"
           
-          # Pass the entire needs context as JSON to the script and extract results
-          # 'jq' is used here to parse the JSON and create an associative array for bash.
-          # This line will create a map like: [job_id]="success" or [job_id]="failure"
-          eval "declare -A NEEDS_RESULTS_MAP=$(echo '${{ toJSON(needs) }}' | jq -c 'to_entries | map({key: .key, value: .value.result}) | from_entries' | sed 's/[{}]//g; s/: /=/g; s/, / /g; s/"//g')"
-
-          # Define job-to-branch mapping
+          # Define job-to-branch mapping with the internal variable names
           declare -A BRANCH_MAP=(
-            ["build-kernel-a12-5-10"]="gki-android12-5.10"
-            ["build-kernel-a13-5-10"]="gki-android13-5.10"
-            ["build-kernel-a13-5-15"]="gki-android13-5.15"
-            ["build-kernel-a14-5-15"]="gki-android14-5.15"
-            ["build-kernel-a14-6-1"]="gki-android14-6.1"
-            ["build-kernel-a15-6-6"]="gki-android15-6.6"
+            ["gki_android12_5_10"]="gki-android12-5.10"
+            ["gki_android13_5_10"]="gki-android13-5.10"
+            ["gki_android13_5_15"]="gki-android13-5.15"
+            ["gki_android14_5_15"]="gki-android14-5.15"
+            ["gki_android14_6_1"]="gki-android14-6.1"
+            ["gki_android15_6_6"]="gki-android15-6.6"
           )
           
-          COMMIT_INFO=""
-          for job_id in "${!BRANCH_MAP[@]}"; do
-            # Check if the job exists in NEEDS_RESULTS_MAP and was successful
-            # This checks the actual result of each specific job.
-            if [[ "${NEEDS_RESULTS_MAP[$job_id]}" == "success" ]]; then
-              branch_name="${BRANCH_MAP[$job_id]}" 
-              COMMIT_HASH=$(git ls-remote https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO.git refs/heads/$branch_name | awk '{ print $1 }') 
-              if [[ -n "$COMMIT_HASH" ]]; then 
-                COMMIT_URL="https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO/-/commit/$COMMIT_HASH" 
-                COMMIT_INFO+="  - $branch_name: [$COMMIT_HASH]($COMMIT_URL)"$'\n' # Added two spaces for proper Markdown list
-              fi 
-            fi 
+          # This map stores the success status from 'needs', but we iterate directly
+          # over BRANCH_MAP and assume job was successful if we need its info.
+          # The 'needs' check is higher up at the job level.
+          
+          for var_name in "${!BRANCH_MAP[@]}"; do
+            branch_name="${BRANCH_MAP[$var_name]}"
+            echo "Attempting to fetch hash for SUSFS branch: $branch_name"
+            
+            # Print the raw output of git ls-remote for direct inspection in logs
+            FULL_LSREMOTE_OUTPUT=$(git ls-remote https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO.git refs/heads/$branch_name)
+            echo "Raw git ls-remote output for $branch_name:"
+            echo "$FULL_LSREMOTE_OUTPUT" 
+            
+            COMMIT_HASH=$(echo "$FULL_LSREMOTE_OUTPUT" | awk '{ print $1 }')
+            
+            if [[ -n "$COMMIT_HASH" ]]; then
+              COMMIT_URL="https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO/-/commit/$COMMIT_HASH"
+              
+              echo "DEBUG: Found COMMIT_HASH for SUSFS $branch_name: $COMMIT_HASH"
+              echo "DEBUG: Found COMMIT_URL for SUSFS $branch_name: $COMMIT_URL"
+              
+              echo "COMMIT_HASH_${var_name}=$COMMIT_HASH" >> "$GITHUB_ENV"
+              echo "COMMIT_URL_${var_name}=$COMMIT_URL" >> "$GITHUB_ENV"
+            else
+              echo "WARNING: Failed to get SUSFS commit hash for branch: $branch_name. git ls-remote returned empty."
+              # Set empty variables to avoid 'null' in release notes if the hash isn't found
+              echo "COMMIT_HASH_${var_name}=" >> "$GITHUB_ENV"
+              echo "COMMIT_URL_${var_name}=" >> "$GITHUB_ENV"
+            fi
           done
-          
-          # Optional: Add this for debugging to see the content of COMMIT_INFO
-          # echo "Debug COMMIT_INFO:"
-          # echo "$COMMIT_INFO"
-          
-          echo "COMMIT_INFO<<EOF" >> "$GITHUB_ENV"
-          echo "$COMMIT_INFO" >> "$GITHUB_ENV"
-          echo "EOF" >> "$GITHUB_ENV"
 
-
-      - name: Initialize RELEASE_NOTES
+      - name: Initialize RELEASE_NOTES and add static content
+        # This step now focuses on the fixed parts of the release notes
         run: |
+          SUSFS_VERSION="1.5.8" # Updated SUSFS version
           echo "RELEASE_NOTES<<EOF" >> "$GITHUB_ENV"
-          echo "This release includes **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU' || '' }}${{ inputs.kernelsu_variant }}, please note the KSU version here**, SUSFS v1.5.8, LZ4KD" >> "$GITHUB_ENV" # Updated SUSFS version
-          echo "" >> "$GITHUB_ENV" # Add a blank line for spacing
+          echo "This release includes **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU' || '' }}${{ inputs.kernelsu_variant }}, please note the KSU version here**, SUSFS v$SUSFS_VERSION, LZ4KD" >> "$GITHUB_ENV"
+          echo "" >> "$GITHUB_ENV" 
           echo "Features:" >> "$GITHUB_ENV"
           echo "-> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}" >> "$GITHUB_ENV"
-          echo "-> SUSFS ඞ v1.5.8" >> "$GITHUB_ENV" # Updated SUSFS version
+          echo "-> SUSFS ඞ v$SUSFS_VERSION" >> "$GITHUB_ENV" 
           echo "-> Manual Syscall Hooks for better hiding effect" >> "$GITHUB_ENV"
           echo "-> Magic Mount support" >> "$GITHUB_ENV"
           echo "-> Simple hiding of LineageOS detection" >> "$GITHUB_ENV"
@@ -274,6 +307,7 @@ jobs:
 
       - name: Add manager info to RELEASE_NOTES
         run: |
+          MANAGER_INFO=""
           case "${{ inputs.kernelsu_variant }}" in
             "Official")
               MANAGER_INFO="Official Manager:\n-> https://github.com/tiann/KernelSU"
@@ -295,6 +329,7 @@ jobs:
           echo "EOF" >> "$GITHUB_ENV"
 
       - name: Add commit info to RELEASE_NOTES
+        # This step now consumes the individual COMMIT_HASH_... and COMMIT_URL_... envs
         run: |
           echo "RELEASE_NOTES<<EOF" >> "$GITHUB_ENV"
           echo "$RELEASE_NOTES" >> "$GITHUB_ENV" # Append existing notes
@@ -304,7 +339,28 @@ jobs:
           echo "Commit hash and links:" >> "$GITHUB_ENV"
           echo "- **KernelSU is ${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}**: [$KSU_REF]($KSU_URL)" >> "$GITHUB_ENV"
           echo "- **SUSFS4KSU**:" >> "$GITHUB_ENV"
-          echo "${{ env.COMMIT_INFO }}" >> "$GITHUB_ENV" # This will now be populated
+          
+          # Dynamically add SUSFS commit info using the individual variables
+          # Check if the variables are not empty before adding to the notes
+          if [[ -n "${{ env.COMMIT_HASH_gki_android12_5_10 }}" ]]; then
+            echo "  - gki-android12-5.10: [${{ env.COMMIT_HASH_gki_android12_5_10 }}](${{ env.COMMIT_URL_gki_android12_5_10 }})" >> "$GITHUB_ENV"
+          fi
+          if [[ -n "${{ env.COMMIT_HASH_gki_android13_5_10 }}" ]]; then
+            echo "  - gki-android13-5.10: [${{ env.COMMIT_HASH_gki_android13_5_10 }}](${{ env.COMMIT_URL_gki_android13_5_10 }})" >> "$GITHUB_ENV"
+          fi
+          if [[ -n "${{ env.COMMIT_HASH_gki_android13_5_15 }}" ]]; then
+            echo "  - gki-android13-5.15: [${{ env.COMMIT_HASH_gki_android13_5_15 }}](${{ env.COMMIT_URL_gki_android13_5_15 }})" >> "$GITHUB_ENV"
+          fi
+          if [[ -n "${{ env.COMMIT_HASH_gki_android14_5_15 }}" ]]; then
+            echo "  - gki-android14-5.15: [${{ env.COMMIT_HASH_gki_android14_5_15 }}](${{ env.COMMIT_URL_gki_android14_5_15 }})" >> "$GITHUB_ENV"
+          fi
+          if [[ -n "${{ env.COMMIT_HASH_gki_android14_6_1 }}" ]]; then
+            echo "  - gki-android14-6.1: [${{ env.COMMIT_HASH_gki_android14_6_1 }}](${{ env.COMMIT_URL_gki_android14_6_1 }})" >> "$GITHUB_ENV"
+          fi
+          if [[ -n "${{ env.COMMIT_HASH_gki_android15_6_6 }}" ]]; then
+            echo "  - gki-android15-6.6: [${{ env.COMMIT_HASH_gki_android15_6_6 }}](${{ env.COMMIT_URL_gki_android15_6_6 }})" >> "$GITHUB_ENV"
+          fi
+          
           echo -e "\n</details>" >> "$GITHUB_ENV"
           echo "EOF" >> "$GITHUB_ENV"
 
@@ -313,15 +369,12 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           LATEST_TAG=$(gh api repos/"$REPO_OWNER"/"$REPO_NAME"/tags --jq '.[0].name' || true)
-          [[ -z "$LATEST_TAG" ]] && LATEST_TAG="v1.0.0-r0"
+          [[ -z "$LATEST_TAG" ]] && LATEST_TAG="v1.0.0-r0" # Default if no tags exist
           
-          if [[ $LATEST_TAG =~ (.*-r)([0-9]+)$ ]]; then
-            NEW_SUFFIX=$((${BASH_REMATCH[2]} + 1))
-            NEW_TAG="${BASH_REMATCH[1]}$NEW_SUFFIX"
-          else
-            NEW_TAG="${LATEST_TAG}-r1"
-          fi
-          
+          # Use awk for more robust incrementing, similar to your second example
+          NEW_TAG=$(echo "$LATEST_TAG" | awk -F'-r' '{suffix=$2; if (!suffix) suffix=0; suffix++; printf "%s-r%d", $1, suffix}')
+    
+          echo "New tag generated: $NEW_TAG"
           echo "NEW_TAG=$NEW_TAG" >> "$GITHUB_ENV"
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
@@ -333,39 +386,39 @@ jobs:
         with:
           path: ./downloaded-artifacts
 
-      - name: Set KSU Environment Variables
+      - name: Set KSU Environment Variables for Release Name
         run: |
-          # Define a variable for SUSFS_VERSION to easily update it if needed
-          SUSFS_VERSION="1.5.8" # Updated SUSFS version
+          SUSFS_VERSION="1.5.8" # Consistent SUSFS version
+          KSU_RELEASE_VERSION="" # Variable to hold KSU's specific version if applicable
+          
           case "${{ inputs.kernelsu_variant }}" in
             "Next")
-              git clone --depth=1 https://github.com/KernelSU-Next/KernelSU-Next.git
-              cd KernelSU-Next
-              KSU_VERSION=$((10000 + $(git rev-list --count HEAD) + 200))
-              echo "KSU_VERSION=$KSU_VERSION" >> "$GITHUB_ENV"
-              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v$SUSFS_VERSION\"" >> "$GITHUB_ENV" # Updated SUSFS version
+              # Clone only if necessary to get specific KSU_VERSION
+              git clone --depth=1 https://github.com/KernelSU-Next/KernelSU-Next.git /tmp/KernelSU-Next-clone
+              KSU_RELEASE_VERSION=$((10000 + $(git -C /tmp/KernelSU-Next-clone rev-list --count HEAD) + 200))
+              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }}($KSU_RELEASE_VERSION) & SUSFS v$SUSFS_VERSION\"" >> "$GITHUB_ENV"
               ;;
             "SukiSU")
-              git clone --depth=1 https://github.com/SukiSU-Ultra/SukiSU-Ultra.git
-              cd SukiSU-Ultra
-              KSU_VERSION=$((10000 + $(git rev-list --count HEAD) + 606))
-              echo "KSU_VERSION=$KSU_VERSION" >> "$GITHUB_ENV"
-              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v$SUSFS_VERSION\"" >> "$GITHUB_ENV" # Updated SUSFS version
+              # Clone only if necessary to get specific KSU_VERSION
+              git clone --depth=1 https://github.com/ShirkNeko/SukiSU-Ultra.git /tmp/SukiSU-Ultra-clone
+              KSU_RELEASE_VERSION=$((10000 + $(git -C /tmp/SukiSU-Ultra-clone rev-list --count HEAD) + 606))
+              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }}($KSU_RELEASE_VERSION) & SUSFS v$SUSFS_VERSION\"" >> "$GITHUB_ENV"
               ;;
             *)
-              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS v$SUSFS_VERSION\"" >> "$GITHUB_ENV" # Updated SUSFS version
+              # For Official, MKSU, and others, no specific KSU version number in release name
+              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS v$SUSFS_VERSION\"" >> "$GITHUB_ENV"
               ;;
           esac
 
       - name: Create GitHub Release
-        uses: actions/create-release@v1
+        uses: actions/create-release@v1 # Keeping this action as it was in your first YML
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ env.NEW_TAG }}
           prerelease: true
           release_name: ${{ env.RELEASE_NAME }}
-          body: ${{ env.RELEASE_NOTES }}
+          body: ${{ env.RELEASE_NOTES }} # Uses the combined RELEASE_NOTES env var
 
       - name: Upload Release Assets
         run: |
