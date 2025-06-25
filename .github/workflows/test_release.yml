@@ -1,4 +1,4 @@
-name: 测试发布
+name: Test Release
 
 permissions:
   contents: write
@@ -13,7 +13,7 @@ on:
         type: boolean
         default: true
       kernelsu_variant:
-        description: "选择 KernelSU"
+        description: "Select KernelSU"
         required: true
         type: choice
         options:
@@ -23,7 +23,7 @@ on:
           - SukiSU
         default: SukiSU
       kernelsu_branch:
-        description: "选择 ksu 分支"
+        description: "Select ksu branch"
         required: true
         type: choice
         options:
@@ -32,21 +32,21 @@ on:
           - Other(其他/指定)
         default: Dev(开发)
       version:
-        description: '自定义版本名(如5.10.198后面的字符/留空则使用默认版本号)'
+        description: 'Custom version name (e.g., characters after 5.10.198 / leave blank to use default version number)'
         required: false
         type: string
       use_zram:
-        description: '是否开启增加更多ZRAM算法?'
+        description: 'Enable more ZRAM algorithms?'
         required: true
         type: boolean
         default: true
       use_kpm:
-        description: '是否开启KPM功能?'
+        description: 'Enable KPM feature?'
         required: true
         type: boolean
         default: true
       get_manager:
-        description: '是否同时获取最新KSU管理器?'
+        description: 'Simultaneously get the latest KSU Manager?'
         required: true
         type: boolean
         default: false
@@ -141,42 +141,17 @@ jobs:
       REPO_OWNER: guruji-byte
       REPO_NAME: GKI_KernelSU_SUSFS
       GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      
+      # RELEASE_NAME will be dynamically set in the "Set KSU Environment Variables" step
+      # RELEASE_NOTES will be built incrementally in subsequent steps
 
-      RELEASE_NAME: "GKI内核: ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }} ${{ inputs.kernelsu_variant }}"
-
-      RELEASE_NOTES: |
-        此发布包含 **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU' || '' }}${{ inputs.kernelsu_variant }},请注意此处的KSU版本** 、SUSFS v1.5.7 、 LZ4KD
-
-        功能:
-        -> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}
-        -> SUSFS ඞ v1.5.7
-        -> 手动Syscall Hooks,实现更好的隐藏效果
-        -> Magic Mount 支持
-        -> 简单隐藏 LineageOS 检测
-        -> 徒劳隐藏 jit-zygote-cache 检测
-        -> Wireguard 支持
-        -> BBR 支持
-        ${{ inputs.use_kpm && '-> KPM 支持' || '' }}
-        -> **LZ4KD&ONEPLUS_LZ4K**  ${{ inputs.use_zram && '支持' || '不支持' }}
-        
-        <details>
-        
-        <summary>备注:</summary>
-        - -> 在SUS SU 模式 2 下, 将显示为禁用或不兼容, 原因是(编译内核时)使用了非kprobe钩子 ,并且不再需要(非kprobe钩子)!
-        - -> 在最新版的susfs, 使用Kernel Flasher刷入AK3压缩包会变砖, 尝试 https://github.com/libxzr/HorizonKernelFlasher!
-
-        </details>
-
-        模块: 
-        -> https://github.com/sidex15/ksu_module_susfs
-        
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
 
-      - name: 确定分支为 KernelSU-${{ inputs.kernelsu_variant }}
+      - name: Determine branch as KernelSU-${{ inputs.kernelsu_variant }}
         if: ${{ inputs.kernelsu_branch == 'Dev(开发)' || inputs.kernelsu_variant == 'MKSU' || inputs.kernelsu_variant == 'SukiSU'  }}
         run: |
           if [[ "${{ inputs.kernelsu_variant }}" == "Official" || "${{ inputs.kernelsu_variant }}" == "MKSU" ]]; then
@@ -186,12 +161,12 @@ jobs:
           elif [[ "${{ inputs.kernelsu_variant }}" == "Next" ]]; then
             BRANCH="next"
           else
-            echo "Error: Custom branch not provided for 'Other(其他/指定)'" >&2
+            echo "Error: Custom branch not provided for 'Other'" >&2
             exit 1
           fi
           echo "KSU_BRANCH=$BRANCH" >> $GITHUB_ENV
 
-      - name: 获取提交哈希值或标签并生成 URL
+      - name: Get commit hash or tag and generate URL
         run: |
           if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
             REPO_URL="https://github.com/tiann/KernelSU.git"
@@ -225,7 +200,7 @@ jobs:
           echo "KSU_REF=$KSU_REF" >> $GITHUB_ENV
           echo "KSU_URL=$KSU_URL" >> $GITHUB_ENV
 
-      - name: 获取 SUSFS 提交信息 (动态)
+      - name: Get SUSFS commit info (dynamic)
         run: |
           GITLAB_OWNER="simonpunk"
           GITLAB_REPO="susfs4ksu"
@@ -257,43 +232,72 @@ jobs:
           echo "$COMMIT_INFO" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      - name: 添加管理器信息到RELEASE_NOTES
+      - name: Initialize RELEASE_NOTES
+        run: |
+          echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo "This release includes **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU' || '' }}${{ inputs.kernelsu_variant }}, please note the KSU version here**, SUSFS v1.5.7, LZ4KD" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV # Add a blank line for spacing
+          echo "Features:" >> $GITHUB_ENV
+          echo "-> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}" >> $GITHUB_ENV
+          echo "-> SUSFS ඞ v1.5.8" >> $GITHUB_ENV
+          echo "-> Manual Syscall Hooks for better hiding effect" >> $GITHUB_ENV
+          echo "-> Magic Mount support" >> $GITHUB_ENV
+          echo "-> Simple hiding of LineageOS detection" >> $GITHUB_ENV
+          echo "-> Futile hiding of jit-zygote-cache detection" >> $GITHUB_ENV
+          echo "-> Wireguard support" >> $GITHUB_ENV
+          echo "-> BBR support" >> $GITHUB_ENV
+          echo "${{ inputs.use_kpm && '-> KPM support' || '' }}" >> $GITHUB_ENV
+          echo "-> **LZ4KD&ONEPLUS_LZ4K** ${{ inputs.use_zram && 'supported' || 'not supported' }}" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo "<details>" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo "<summary>Notes:</summary>" >> $GITHUB_ENV
+          echo "- -> In SUS SU Mode 2, it will show as disabled or incompatible because non-kprobe hooks were used (when compiling the kernel) and are no longer needed!" >> $GITHUB_ENV
+          echo "- -> With the latest version of SUSFS, flashing AK3 compressed packages with Kernel Flasher will brick your device. Try https://github.com/libxzr/HorizonKernelFlasher!" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo "</details>" >> $GITHUB_ENV
+          echo "" >> $GITHUB_ENV
+          echo "Modules:" >> $GITHUB_ENV
+          echo "-> https://github.com/sidex15/ksu_module_susfs" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Add manager info to RELEASE_NOTES
         run: |
           case "${{ inputs.kernelsu_variant }}" in
             "Official")
-              MANAGER_INFO="Official 管理器:\n-> https://github.com/tiann/KernelSU"
+              MANAGER_INFO="Official Manager:\n-> https://github.com/tiann/KernelSU"
               ;;
             "Next")
-              MANAGER_INFO="Next 管理器:\n-> https://github.com/KernelSU-Next/KernelSU-Next"
+              MANAGER_INFO="Next Manager:\n-> https://github.com/KernelSU-Next/KernelSU-Next"
               ;;
             "MKSU")
-              MANAGER_INFO="MKSU 管理器:\n-> https://github.com/5ec1cff/KernelSU"
+              MANAGER_INFO="MKSU Manager:\n-> https://github.com/5ec1cff/KernelSU"
               ;;
             "SukiSU")
-              MANAGER_INFO="SukiSU 管理器:\n-> https://github.com/ShirkNeko/SukiSU-Ultra"
+              MANAGER_INFO="SukiSU Manager:\n-> https://github.com/ShirkNeko/SukiSU-Ultra"
               ;;
           esac
           
           echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          echo "$RELEASE_NOTES" >> $GITHUB_ENV
-          echo -e "\n$MANAGER_INFO" >> $GITHUB_ENV
+          echo "$RELEASE_NOTES" >> $GITHUB_ENV # Append existing notes
+          echo -e "\n$MANAGER_INFO" >> $GITHUB_ENV # Append manager info
           echo "EOF" >> $GITHUB_ENV
 
-      - name: 添加提交信息到RELEASE_NOTES
+      - name: Add commit info to RELEASE_NOTES
         run: |
           echo "RELEASE_NOTES<<EOF" >> $GITHUB_ENV
-          echo "$RELEASE_NOTES" >> $GITHUB_ENV
+          echo "$RELEASE_NOTES" >> $GITHUB_ENV # Append existing notes
           echo -e "\nLTO: thin\n" >> $GITHUB_ENV
           echo "<details>" >> $GITHUB_ENV
-          echo -e "\n<summary>提交信息</summary>\n" >> $GITHUB_ENV
-          echo "提交的哈希值与链接:" >> $GITHUB_ENV
-          echo "- **KernelSU为${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}**: [$KSU_REF]($KSU_URL)" >> $GITHUB_ENV
+          echo -e "\n<summary>Commit Info</summary>\n" >> $GITHUB_ENV
+          echo "Commit hash and links:" >> $GITHUB_ENV
+          echo "- **KernelSU is ${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}**: [$KSU_REF]($KSU_URL)" >> $GITHUB_ENV
           echo "- **SUSFS4KSU**:" >> $GITHUB_ENV
-          echo "${{ env.COMMIT_INFO }}" >> $GITHUB_ENV
+          echo "${{ env.COMMIT_INFO }}" >> $GITHUB_ENV # This should now correctly expand multi-line
           echo -e "\n</details>" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
-      - name: 生成和创建新标签
+      - name: Generate and create new tag
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -318,7 +322,7 @@ jobs:
         with:
           path: ./downloaded-artifacts
 
-      - name: 设定 KSU 环境变量
+      - name: Set KSU Environment Variables
         run: |
           case "${{ inputs.kernelsu_variant }}" in
             "Next")
@@ -326,17 +330,17 @@ jobs:
               cd KernelSU-Next
               KSU_VERSION=$((10000 + $(git rev-list --count HEAD) + 200))
               echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
-              echo "RELEASE_NAME=\"GKI内核: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v1.5.7\"" >> $GITHUB_ENV
+              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v1.5.7\"" >> $GITHUB_ENV
               ;;
             "SukiSU")
               git clone --depth=1 https://github.com/SukiSU-Ultra/SukiSU-Ultra.git
               cd SukiSU-Ultra
               KSU_VERSION=$((10000 + $(git rev-list --count HEAD) + 606))
               echo "KSU_VERSION=$KSU_VERSION" >> $GITHUB_ENV
-              echo "RELEASE_NAME=\"GKI内核: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v1.5.7\"" >> $GITHUB_ENV
+              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }}($KSU_VERSION) & SUSFS v1.5.7\"" >> $GITHUB_ENV
               ;;
             *)
-              echo "RELEASE_NAME=\"GKI内核: ${{ inputs.kernelsu_variant }} & SUSFS v1.5.7\"" >> $GITHUB_ENV
+              echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS v1.5.7\"" >> $GITHUB_ENV
               ;;
           esac
 
@@ -350,25 +354,25 @@ jobs:
           release_name: ${{ env.RELEASE_NAME }}
           body: ${{ env.RELEASE_NOTES }}
 
-      - name: 上传发布资产
+      - name: Upload Release Assets
         run: |
-          # 上传管理器文件
+          # Upload manager files
           if ls ./downloaded-artifacts/*Manager*/* 1> /dev/null 2>&1; then
-            echo "上传管理器文件..."
+            echo "Uploading manager files..."
             gh release upload ${{ env.NEW_TAG }} ./downloaded-artifacts/*Manager*/*
           fi
           
-          # 上传内核文件
+          # Upload kernel files
           for dir in ./downloaded-artifacts/*_kernel-*; do
             if [ -d "$dir" ]; then
-              echo "上传 $dir 中的文件..."
+              echo "Uploading files from $dir..."
               gh release upload ${{ env.NEW_TAG }} $dir/*
             fi
           done
 
-      - name: 显示上传文件
+      - name: Display uploaded files
         run: |
-          echo "已上传文件:"
+          echo "Uploaded files:"
           find ./downloaded-artifacts -type f
 
      # - name: send telegram message on push
