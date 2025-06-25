@@ -4,6 +4,15 @@ permissions:
   contents: write
   actions: write
 
+# reusable anchor for kernel build args
+x-build-args: &build-args
+  make_release:     ${{ inputs.make_release }}
+  kernelsu_variant: ${{ inputs.kernelsu_variant }}
+  kernelsu_branch:  ${{ inputs.kernelsu_branch }}
+  version:          ${{ inputs.version }}
+  use_zram:         ${{ inputs.use_zram }}
+  use_kpm:          ${{ inputs.use_kpm }}
+
 on:
   workflow_dispatch:
     inputs:
@@ -66,6 +75,12 @@ on:
         type: string
         default: all
 
+      pre_release:
+        description: 'Mark this GitHub release as a prerelease?'
+        required: true
+        type: boolean
+        default: false
+
 jobs:
   get_manager:
     if: ${{ inputs.get_manager }}
@@ -77,73 +92,37 @@ jobs:
   build-kernel-a12-5-10:
     if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a12-5.10') }}
     uses: ./.github/workflows/kernel-a12-5.10.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
+    with: *build-args
     secrets: inherit
 
   build-kernel-a13-5-10:
     if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a13-5.10') }}
     uses: ./.github/workflows/kernel-a13-5.10.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
+    with: *build-args
     secrets: inherit
 
   build-kernel-a13-5-15:
     if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a13-5.15') }}
     uses: ./.github/workflows/kernel-a13-5.15.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
+    with: *build-args
     secrets: inherit
 
   build-kernel-a14-5-15:
     if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a14-5.15') }}
     uses: ./.github/workflows/kernel-a14-5.15.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
+    with: *build-args
     secrets: inherit
 
   build-kernel-a14-6-1:
     if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a14-6.1') }}
     uses: ./.github/workflows/kernel-a14-6.1.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
+    with: *build-args
     secrets: inherit
 
   build-kernel-a15-6-6:
     if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a15-6.6') }}
     uses: ./.github/workflows/kernel-a15-6.6.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
+    with: *build-args
     secrets: inherit
 
   trigger-release:
@@ -164,41 +143,26 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Determine KSU branch
+      - name: Determine KSU branch (Stable)
         if: ${{ inputs.kernelsu_branch == 'Stable(标准)' }}
         run: echo "KSU_BRANCH=stable" >> $GITHUB_ENV
 
-      - name: Determine KSU branch (Dev or Other)
+      - name: Determine KSU branch (Dev/Other)
         if: ${{ inputs.kernelsu_branch != 'Stable(标准)' }}
         run: |
-          if [[ "${{ inputs.kernelsu_variant }}" == "Next" ]]; then
-            echo "KSU_BRANCH=next" >> $GITHUB_ENV
-          else
-            echo "KSU_BRANCH=main" >> $GITHUB_ENV
-          fi
+          [[ "${{ inputs.kernelsu_variant }}" == "Next" ]] \
+            && echo "KSU_BRANCH=next" >> $GITHUB_ENV \
+            || echo "KSU_BRANCH=main" >> $GITHUB_ENV
 
       - name: Fetch KernelSU ref & URL
         run: |
           case "${{ inputs.kernelsu_variant }}" in
-            Official)
-              REPO_URL=https://github.com/tiann/KernelSU.git
-              REPO=tiann/KernelSU
-              ;;
-            Next)
-              REPO_URL=https://github.com/KernelSU-Next/KernelSU-Next.git
-              REPO=KernelSU-Next/KernelSU-Next
-              ;;
-            MKSU)
-              REPO_URL=https://github.com/5ec1cff/KernelSU.git
-              REPO=5ec1cff/KernelSU
-              ;;
-            SukiSU)
-              REPO_URL=https://github.com/ShirkNeko/KernelSU.git
-              REPO=ShirkNeko/KernelSU
-              ;;
+            Official) REPO_URL=https://github.com/tiann/KernelSU.git;       REPO=tiann/KernelSU ;;
+            Next)     REPO_URL=https://github.com/KernelSU-Next/KernelSU-Next.git; REPO=KernelSU-Next/KernelSU-Next ;;
+            MKSU)     REPO_URL=https://github.com/5ec1cff/KernelSU.git;     REPO=5ec1cff/KernelSU ;;
+            SukiSU)   REPO_URL=https://github.com/ShirkNeko/KernelSU.git;   REPO=ShirkNeko/KernelSU ;;
           esac
 
-          # If Stable, look for tags; otherwise use the branch
           if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" && "${{ inputs.kernelsu_variant }}" != "SukiSU" ]]; then
             TAG=$(git ls-remote --tags --sort=-v:refname "$REPO_URL" \
                   | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
@@ -206,11 +170,11 @@ jobs:
               REF=$TAG
               URL="https://github.com/$REPO/releases/tag/$TAG"
             else
-              REF=$(git ls-remote "$REPO_URL" HEAD | awk '{print $1}')
+              REF=$(git ls-remote "$REPO_URL" HEAD | cut -f1)
               URL="https://github.com/$REPO/commit/$REF"
             fi
           else
-            REF=$(git ls-remote "$REPO_URL" "refs/heads/$KSU_BRANCH" | awk '{print $1}')
+            REF=$(git ls-remote "$REPO_URL" refs/heads/$KSU_BRANCH | cut -f1)
             URL="https://github.com/$REPO/commit/$REF"
           fi
 
@@ -220,29 +184,18 @@ jobs:
       - name: Bump tag & set release name
         run: |
           SUSFS_VERSION="1.5.8"
-          VER=""
-          if [[ "${{ inputs.kernelsu_variant }}" == "Next" ]]; then
-            git clone --depth=1 https://github.com/KernelSU-Next/KernelSU-Next.git tmp
-            VER=$((10000 + $(git -C tmp rev-list --count HEAD) + 200))
-          elif [[ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
-            git clone --depth=1 https://github.com/ShirkNeko/SukiSU-Ultra.git tmp
-            VER=$((10000 + $(git -C tmp rev-list --count HEAD) + 606))
-          fi
-
-          if [[ -n "$VER" ]]; then
-            echo "RELEASE_NAME=GKI Kernel: ${{ inputs.kernelsu_variant }} ($VER) & SUSFS v$SUSFS_VERSION" >> $GITHUB_ENV
+          LATEST_TAG=$(git tag --list "v${SUSFS_VERSION}-r*" --sort=-v:refname | head -n1)
+          if [[ -z "$LATEST_TAG" ]]; then
+            NEXT=1
           else
-            echo "RELEASE_NAME=GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS v$SUSFS_VERSION" >> $GITHUB_ENV
+            SUF=${LATEST_TAG##*-r}
+            NEXT=$((SUF + 1))
           fi
-
-          LATEST=$(gh api repos/${{ github.repository }}/tags --jq '.[0].name' || true)
-          [[ -z "$LATEST" ]] && LATEST="v1.0.0-r0"
-          BASE="${LATEST%-r*}"
-          SUF="${LATEST#*-r}"
-          NEW_TAG="$BASE-r$((SUF+1))"
+          NEW_TAG="v${SUSFS_VERSION}-r${NEXT}"
           git tag "$NEW_TAG"
           git push origin "$NEW_TAG"
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
+          echo "RELEASE_NAME=GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS ${SUSFS_VERSION} r${NEXT}" >> $GITHUB_ENV
 
       - name: Build RELEASE_NOTES
         run: |
@@ -279,9 +232,10 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.NEW_TAG }}
-          name:     ${{ env.RELEASE_NAME }}
-          body:     ${{ env.RELEASE_NOTES }}
+          tag_name:   ${{ env.NEW_TAG }}
+          name:       ${{ env.RELEASE_NAME }}
+          body:       ${{ env.RELEASE_NOTES }}
+          prerelease: ${{ inputs.pre_release }}
 
       - name: Download Artifacts
         uses: actions/download-artifact@v4
@@ -292,15 +246,13 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          # Upload manager APK(s)
+          # Manager APK(s)
           if ls ./downloaded-artifacts/*Manager*/*.apk >/dev/null 2>&1; then
             gh release upload "${{ env.NEW_TAG }}" ./downloaded-artifacts/*Manager*/*.apk
           fi
-          # Upload kernel outputs (zip, img, dtb, etc.)
+          # Kernel outputs
           for dir in ./downloaded-artifacts/*_kernel-*; do
-            if [ -d "$dir" ]; then
-              gh release upload "${{ env.NEW_TAG }}" "$dir"/*
-            fi
+            [ -d "$dir" ] && gh release upload "${{ env.NEW_TAG }}" "$dir"/*
           done
 
       - name: Display uploaded files
