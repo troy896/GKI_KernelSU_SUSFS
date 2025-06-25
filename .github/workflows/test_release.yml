@@ -13,7 +13,7 @@ on:
         type: boolean
         default: true
       kernelsu_variant:
-        description: "Select KernelSU"
+        description: 'Select KernelSU'
         required: true
         type: choice
         options:
@@ -23,7 +23,7 @@ on:
           - SukiSU
         default: SukiSU
       kernelsu_branch:
-        description: "Select KSU branch"
+        description: 'Select KSU branch'
         required: true
         type: choice
         options:
@@ -50,116 +50,90 @@ on:
         required: true
         type: boolean
         default: false
-      build_a12_5_10:
-        description: 'Do you want to build kernel-a12-5-10?'
+      build_kernels:
+        description: 'Comma-separated list of kernels to build (e.g., a12-5-10,a13-5-10). Available options: a12-5-10, a13-5-10, a13-5-15, a14-5-15, a14-6-1, a15-6-6'
         required: false
-        type: boolean
-        default: false
-      build_a13_5_10:
-        description: 'Do you want to build kernel-a13-5-10?'
-        required: false
-        type: boolean
-        default: false
-      build_a13_5_15:
-        description: 'Do you want to build kernel-a13-5-15?'
-        required: false
-        type: boolean
-        default: false
-      build_a14_5_15:
-        description: 'Do you want to build kernel-a14-5-15?'
-        required: false
-        type: boolean
-        default: false
-      build_a14_6_1:
-        description: 'Do you want to build kernel-a14-6-1?'
-        required: false
-        type: boolean
-        default: false
-      build_a15_6_6:
-        description: 'Do you want to build kernel-a15-6-6?'
-        required: false
-        type: boolean
-        default: false
+        type: string
 
 jobs:
   get_manager:
-    if: ${{ inputs.get_manager }}
+    if: inputs.get_manager
     uses: ./.github/workflows/get-manager.yml
     secrets: inherit
     with:
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
+      kernelsu_variant: inputs.kernelsu_variant
 
   build-kernel-a12-5-10:
-    if: ${{ inputs.build_a12_5_10 }}
+    if: contains(',' + inputs.build_kernels + ',', ',a12-5-10,')
     uses: ./.github/workflows/kernel-a12-5.10.yml
     secrets: inherit
     with:
-      make_release: ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
+      make_release: inputs.make_release
+      kernelsu_variant: inputs.kernelsu_variant
+      kernelsu_branch: inputs.kernelsu_branch
+      version: inputs.version
+      use_zram: inputs.use_zram
+      use_kpm: inputs.use_kpm
 
   build-kernel-a13-5-10:
-    if: ${{ inputs.build_a13_5_10 }}
+    if: contains(',' + inputs.build_kernels + ',', ',a13-5-10,')
     uses: ./.github/workflows/kernel-a13-5.10.yml
     secrets: inherit
     with:
-      make_release: ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
+      make_release: inputs.make_release
+      kernelsu_variant: inputs.kernelsu_variant
+      kernelsu_branch: inputs.kernelsu_branch
+      version: inputs.version
+      use_zram: inputs.use_zram
+      use_kpm: inputs.use_kpm
 
   build-kernel-a13-5-15:
-    if: ${{ inputs.build_a13_5_15 }}
+    if: contains(',' + inputs.build_kernels + ',', ',a13-5-15,')
     uses: ./.github/workflows/kernel-a13-5.15.yml
     secrets: inherit
     with:
-      make_release: ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
+      make_release: inputs.make_release
+      kernelsu_variant: inputs.kernelsu_variant
+      kernelsu_branch: inputs.kernelsu_branch
+      version: inputs.version
+      use_zram: inputs.use_zram
+      use_kpm: inputs.use_kpm
 
   build-kernel-a14-5-15:
-    if: ${{ inputs.build_a14_5_15 }}
+    if: contains(',' + inputs.build_kernels + ',', ',a14-5-15,')
     uses: ./.github/workflows/kernel-a14-5.15.yml
     secrets: inherit
     with:
-      make_release: ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
+      make_release: inputs.make_release
+      kernelsu_variant: inputs.kernelsu_variant
+      kernelsu_branch: inputs.kernelsu_branch
+      version: inputs.version
+      use_zram: inputs.use_zram
+      use_kpm: inputs.use_kpm
 
   build-kernel-a14-6-1:
-    if: ${{ inputs.build_a14_6_1 }}
+    if: contains(',' + inputs.build_kernels + ',', ',a14-6-1,')
     uses: ./.github/workflows/kernel-a14-6.1.yml
     secrets: inherit
     with:
-      make_release: ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
+      make_release: inputs.make_release
+      kernelsu_variant: inputs.kernelsu_variant
+      kernelsu_branch: inputs.kernelsu_branch
+      version: inputs.version
+      use_zram: inputs.use_zram
+      use_kpm: inputs.use_kpm
 
   build-kernel-a15-6-6:
-    if: ${{ inputs.build_a15_6_6 }}
+    if: contains(',' + inputs.build_kernels + ',', ',a15-6-6,')
     uses: ./.github/workflows/kernel-a15-6.6.yml
     secrets: inherit
     with:
-      make_release: ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
+      make_release: inputs.make_release
+      kernelsu_variant: inputs.kernelsu_variant
+      kernelsu_branch: inputs.kernelsu_branch
+      version: inputs.version
+      use_zram: inputs.use_zram
+      use_kpm: inputs.use_kpm
 
   trigger-release:
     runs-on: ubuntu-latest
@@ -174,7 +148,7 @@ jobs:
       - build-kernel-a14-5-15
       - build-kernel-a14-6-1
       - build-kernel-a15-6-6
-    if: ${{ inputs.make_release }}
+    if: inputs.make_release
     env:
       REPO_OWNER: guruji-byte
       REPO_NAME: GKI_KernelSU_SUSFS
@@ -213,7 +187,7 @@ jobs:
           fetch-depth: 0
 
       - name: Determine branch for KernelSU-${{ inputs.kernelsu_variant }}
-        if: ${{ inputs.kernelsu_branch == 'Dev(开发)' || inputs.kernelsu_variant == 'MKSU' || inputs.kernelsu_variant == 'SukiSU' }}
+        if: inputs.kernelsu_branch == 'Dev(开发)' || inputs.kernelsu_variant == 'MKSU' || inputs.kernelsu_variant == 'SukiSU'
         run: |
           if [[ "${{ inputs.kernelsu_variant }}" == "Official" || "${{ inputs.kernelsu_variant }}" == "MKSU" ]]; then
             BRANCH="main"
