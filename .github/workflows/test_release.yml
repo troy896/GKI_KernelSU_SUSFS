@@ -1,4 +1,4 @@
-Name: Test Release
+name: Test Release
 
 permissions:
   contents: write
