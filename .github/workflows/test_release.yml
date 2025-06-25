@@ -293,7 +293,7 @@ jobs:
           echo "Commit hash and links:" >> $GITHUB_ENV
           echo "- **KernelSU is ${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}**: [$KSU_REF]($KSU_URL)" >> $GITHUB_ENV
           echo "- **SUSFS4KSU**:" >> $GITHUB_ENV
-          echo "${{ env.COMMIT_INFO }}" >> $GITHUB_ENV # This should now correctly expand multi-line
+          echo "${{ env.COMMIT_INFO }}" >> $GITHUB_ENV 
           echo -e "\n</details>" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
 
