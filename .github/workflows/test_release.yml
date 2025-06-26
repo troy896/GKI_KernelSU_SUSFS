@@ -15,7 +15,7 @@ on:
       kernels_to_build:
         description: |
           Comma-separated list of kernels to build/release, e.g.:
-            a12-5.10,a13-5.10,a13-5.15,a14-5.15,a14-6.1,a15-6.6,a12-5.12
+            a12-5.10,a13-5.10,a13-5.15,a14-5.15,a14-6.1,a15-6.6
           or "all" to build every kernel.
         required: true
         type: string
@@ -83,7 +83,9 @@ jobs:
       version: ${{ inputs.version }}
       use_zram: ${{ inputs.use_zram }}
       use_kpm: ${{ inputs.use_kpm }}
-  
+
+  # build-kernel-a12-5-12 job REMOVED
+
   build-kernel-a13-5-10:
     if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13')
     uses: ./.github/workflows/kernel-a13-5.10.yml
@@ -153,7 +155,7 @@ jobs:
     needs:
         - get_manager
         - build-kernel-a12-5-10
-        - build-kernel-a12-5-12
+        # - build-kernel-a12-5-12 REMOVED
         - build-kernel-a13-5-10
         - build-kernel-a13-5-15
         - build-kernel-a14-5-15
@@ -280,7 +282,7 @@ jobs:
           # and their corresponding SUSFS Git branch names.
           declare -A BRANCH_MAP=(
             ["a12-5.10"]="gki-android12-5.10"
-            ["a12-5.12"]="gki-android12-5.12"
+            # ["a12-5.12"]="gki-android12-5.12" REMOVED
             ["a13-5.10"]="gki-android13-5.10"
             ["a13-5.15"]="gki-android13-5.15"
             ["a14-5.15"]="gki-android14-5.15"
@@ -300,9 +302,9 @@ jobs:
             # Otherwise, parse the comma-separated input
             IFS=',' read -r -a INPUT_KERNELS <<< "${{ inputs.kernels_to_build }}"
             for kernel_input in "${INPUT_KERNELS[@]}"; do
-              # Handle aliases (e.g., 'a12' should include 'a12-5.10' and 'a12-5.12')
+              # Handle aliases (e.g., 'a12' should include 'a12-5.10')
               case "$kernel_input" in
-                "a12") KERNELS_TO_FETCH_SUSFS+=("a12-5.10" "a12-5.12") ;;
+                "a12") KERNELS_TO_FETCH_SUSFS+=("a12-5.10") ;; # <--- UPDATED A12 ALIAS
                 "a13") KERNELS_TO_FETCH_SUSFS+=("a13-5.10" "a13-5.15") ;;
                 "a14") KERNELS_TO_FETCH_SUSFS+=("a14-5.15" "a14-6.1") ;;
                 "a15") KERNELS_TO_FETCH_SUSFS+=("a15-6.6") ;;
