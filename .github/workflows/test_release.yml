@@ -3,24 +3,25 @@ name: Test Release
 permissions:
   contents: write
   actions: write
-
+  
 on:
   workflow_dispatch:
     inputs:
       make_release:
-        description: 'Publish a GitHub Release?'
+        description: 'Do you want to create a release?'
         required: true
         type: boolean
         default: true
-
-      get_manager:
-        description: 'Fetch latest KSU Manager?'
+      kernels_to_build:
+        description: |
+          Comma-separated list of kernels to build/release, e.g.:
+            a12-5.10,a13-5.10,a13-5.15,a14-5.15,a14-6.1,a15-6.6
+          or "all" to build every kernel.
         required: true
-        type: boolean
-        default: false
-
+        type: string
+        default: 'all'
       kernelsu_variant:
-        description: 'Select KernelSU'
+        description: "Select KernelSU"
         required: true
         type: choice
         options:
@@ -29,9 +30,8 @@ on:
           - MKSU
           - SukiSU
         default: SukiSU
-
       kernelsu_branch:
-        description: 'Select KSU branch'
+        description: "Select KSU branch"
         required: true
         type: choice
         options:
@@ -39,238 +39,355 @@ on:
           - Dev(开发)
           - Other(其他/指定)
         default: Dev(开发)
-
       version:
-        description: 'Custom version name (optional)'
+        description: 'Custom version name (e.g., characters after 5.10.198 / leave blank to use default version number)'
         required: false
         type: string
-
       use_zram:
-        description: 'Enable extra ZRAM?'
+        description: 'Enable more ZRAM algorithms?'
         required: true
         type: boolean
         default: true
-
       use_kpm:
-        description: 'Enable KPM feature?'
+        description: 'Enable KPM functionality?'
         required: true
         type: boolean
         default: true
-
-      kernels_to_build:
-        description: |
-          Comma-separated list of kernels to build/release, e.g.:
-            a12-5.10,a13-5.10,a13-5.15,a14-5.15,a14-6.1,a15-6.6
-          or "all" to build every kernel.
-        required: false
-        type: string
-        default: all
-
-      pre_release:
-        description: 'Mark this GitHub release as a prerelease?'
+      get_manager:
+        description: 'Get the latest KSU Manager at the same time?'
         required: true
         type: boolean
         default: false
 
 jobs:
   get_manager:
-    if: ${{ inputs.get_manager }}
     uses: ./.github/workflows/get-manager.yml
+    secrets: inherit
     with:
       kernelsu_variant: ${{ inputs.kernelsu_variant }}
-    secrets: inherit
 
   build-kernel-a12-5-10:
-    if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a12-5.10') }}
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.10')
     uses: ./.github/workflows/kernel-a12-5.10.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
     secrets: inherit
+    with:
+      make_release: true
+      kernelsu_variant: ${{ inputs.kernelsu_variant }}
+      kernelsu_branch: ${{ inputs.kernelsu_branch }}
+      version: ${{ inputs.version }}
+      use_zram: ${{ inputs.use_zram }}
+      use_kpm: ${{ inputs.use_kpm }}
 
   build-kernel-a13-5-10:
-    if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a13-5.10') }}
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10')
     uses: ./.github/workflows/kernel-a13-5.10.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
     secrets: inherit
+    with:
+      make_release: ${{ inputs.make_release }}
+      kernelsu_variant: ${{ inputs.kernelsu_variant }}
+      kernelsu_branch: ${{ inputs.kernelsu_branch }}
+      version: ${{ inputs.version }}
+      use_zram: ${{ inputs.use_zram }}
+      use_kpm: ${{ inputs.use_kpm }}
 
   build-kernel-a13-5-15:
-    if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a13-5.15') }}
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13') || contains(github.event.inputs.kernels_to_build, 'a13-5.15')
     uses: ./.github/workflows/kernel-a13-5.15.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
     secrets: inherit
+    with:
+      make_release: ${{ inputs.make_release }}
+      kernelsu_variant: ${{ inputs.kernelsu_variant }}
+      kernelsu_branch: ${{ inputs.kernelsu_branch }}
+      version: ${{ inputs.version }}
+      use_zram: ${{ inputs.use_zram }}
+      use_kpm: ${{ inputs.use_kpm }}
 
   build-kernel-a14-5-15:
-    if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a14-5.15') }}
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14-5.15')
     uses: ./.github/workflows/kernel-a14-5.15.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
     secrets: inherit
+    with:
+      make_release: ${{ inputs.make_release }}
+      kernelsu_variant: ${{ inputs.kernelsu_variant }}
+      kernelsu_branch: ${{ inputs.kernelsu_branch }}
+      version: ${{ inputs.version }}
+      use_zram: ${{ inputs.use_zram }}
+      use_kpm: ${{ inputs.use_kpm }}
 
   build-kernel-a14-6-1:
-    if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a14-6.1') }}
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14') || contains(github.event.inputs.kernels_to_build, 'a14-6.1')
     uses: ./.github/workflows/kernel-a14-6.1.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
     secrets: inherit
+    with:
+      make_release: ${{ inputs.make_release }}
+      kernelsu_variant: ${{ inputs.kernelsu_variant }}
+      kernelsu_branch: ${{ inputs.kernelsu_branch }}
+      version: ${{ inputs.version }}
+      use_zram: ${{ inputs.use_zram }}
+      use_kpm: ${{ inputs.use_kpm }}
 
   build-kernel-a15-6-6:
-    if: ${{ inputs.kernels_to_build == 'all' || contains(inputs.kernels_to_build, 'a15-6.6') }}
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a15') || contains(github.event.inputs.kernels_to_build, 'a15-6.6')
     uses: ./.github/workflows/kernel-a15-6.6.yml
-    with:
-      make_release:     ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch:  ${{ inputs.kernelsu_branch }}
-      version:          ${{ inputs.version }}
-      use_zram:         ${{ inputs.use_zram }}
-      use_kpm:          ${{ inputs.use_kpm }}
     secrets: inherit
+    with:
+      make_release: ${{ inputs.make_release }}
+      kernelsu_variant: ${{ inputs.kernelsu_variant }}
+      kernelsu_branch: ${{ inputs.kernelsu_branch }}
+      version: ${{ inputs.version }}
+      use_zram: ${{ inputs.use_zram }}
+      use_kpm: ${{ inputs.use_kpm }}
 
   trigger-release:
-    needs:
-      - get_manager
-      - build-kernel-a12-5-10
-      - build-kernel-a13-5-10
-      - build-kernel-a13-5-15
-      - build-kernel-a14-5-15
-      - build-kernel-a14-6-1
-      - build-kernel-a15-6-6
-    if: ${{ inputs.make_release }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: write
+    needs:
+        - get_manager
+        - build-kernel-a12-5-10
+        - build-kernel-a13-5-10
+        - build-kernel-a13-5-15
+        - build-kernel-a14-5-15
+        - build-kernel-a14-6-1
+        - build-kernel-a15-6-6
+    if: ${{ inputs.make_release }}
+    env:
+      REPO_OWNER: Kavi 
+      REPO_NAME: GKI_KernelSU_SUSFS
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
 
+      RELEASE_NAME: "GKI Kernel: ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }} ${{ inputs.kernelsu_variant }}"
+        
+      INITIAL_RELEASE_NOTES: | # Initial fixed part of release notes
+        This release includes **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU' || '' }}${{ inputs.kernelsu_variant }}, please note the KSU version here**, SUSFS v1.5.8, LZ4KD
+
+        Features:
+        -> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}
+        -> SUSFS ඞ v1.5.8
+        -> Manual Syscall Hooks for better hiding
+        -> Magic Mount Support
+        -> Simple hiding for LineageOS detection
+        -> Futile hiding for jit-zygote-cache detection
+        -> Wireguard Support
+        -> BBR Support
+        ${{ inputs.use_kpm && '-> KPM Support' || '' }}
+        -> **LZ4KD&ONEPLUS_LZ4K** ${{ inputs.use_zram && 'supported' || 'not supported' }}
+        
+        <details>
+        
+        <summary>Notes:</summary>
+        - -> In SUS SU Mode 2, it will show as disabled or incompatible, the reason is that non-kprobe hooks were used (when compiling the kernel), and non-kprobe hooks are no longer needed!
+        - -> In the latest version of susfs, flashing AK3 compressed package with Kernel Flasher will brick your device, try https://github.com/libxzr/HorizonKernelFlasher!
+
+        </details>
+
+        Modules: 
+        -> https://github.com/sidex15/ksu_module_susfs
+        
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-      - name: Determine KSU branch
-        if: ${{ inputs.kernelsu_branch == 'Stable(标准)' }}
-        run: echo "KSU_BRANCH=stable" >> $GITHUB_ENV
-
-      - name: Determine KSU branch (Dev/Other)
-        if: ${{ inputs.kernelsu_branch != 'Stable(标准)' }}
+      - name: Fetch KSU and SUSFS Commit Info and Build Final Release Notes
         run: |
-          [[ "${{ inputs.kernelsu_variant }}" == "Next" ]] \
-            && echo "KSU_BRANCH=next" >> $GITHUB_ENV \
-            || echo "KSU_BRANCH=main" >> $GITHUB_ENV
-
-      - name: Fetch KernelSU ref & URL
-        run: |
-          case "${{ inputs.kernelsu_variant }}" in
-            Official) REPO_URL=https://github.com/tiann/KernelSU.git;       REPO=tiann/KernelSU ;;
-            Next)     REPO_URL=https://github.com/KernelSU-Next/KernelSU-Next.git; REPO=KernelSU-Next/KernelSU-Next ;;
-            MKSU)     REPO_URL=https://github.com/5ec1cff/KernelSU.git;     REPO=5ec1cff/KernelSU ;;
-            SukiSU)   REPO_URL=https://github.com/ShirkNeko/KernelSU.git;   REPO=ShirkNeko/KernelSU ;;
-          esac
-
-          if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" && "${{ inputs.kernelsu_variant }}" != "SukiSU" ]]; then
-            TAG=$(git ls-remote --tags --sort=-v:refname "$REPO_URL" \
-                  | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
-            if [[ -n "$TAG" ]]; then
-              REF=$TAG
-              URL="https://github.com/$REPO/releases/tag/$TAG"
-            else
-              REF=$(git ls-remote "$REPO_URL" HEAD | cut -f1)
-              URL="https://github.com/$REPO/commit/$REF"
+          KSU_BRANCH=""
+          if [[ "${{ inputs.kernelsu_branch }}" == "Dev(开发)" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
+            if [[ "${{ inputs.kernelsu_variant }}" == "Official" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
+              KSU_BRANCH="main"
+            elif [[ "${{ inputs.kernelsu_variant }}" == "Next" ]]; then
+              KSU_BRANCH="next"
             fi
+          fi
+          echo "KSU_BRANCH=$KSU_BRANCH" >> $GITHUB_ENV
+
+          KSU_REPO_URL=""
+          KSU_REPO_URL2=""
+          if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
+            KSU_REPO_URL="https://github.com/tiann/KernelSU.git"
+            KSU_REPO_URL2="tiann/KernelSU"
+          elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
+            KSU_REPO_URL="https://github.com/KernelSU-Next/KernelSU-Next.git"
+            KSU_REPO_URL2="KernelSU-Next/KernelSU-Next"
+          elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
+            KSU_REPO_URL="https://github.com/5ec1cff/KernelSU.git"
+            KSU_REPO_URL2="5ec1cff/KernelSU"
+          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
+            KSU_REPO_URL="https://github.com/ShirkNeko/KernelSU.git"
+            KSU_REPO_URL2="ShirkNeko/KernelSU"
           else
-            REF=$(git ls-remote "$REPO_URL" refs/heads/$KSU_BRANCH | cut -f1)
-            URL="https://github.com/$REPO/commit/$REF"
+            echo "Warning: Unknown KernelSU variant. Defaulting to Official for URL generation."
+            KSU_REPO_URL="https://github.com/tiann/KernelSU.git"
+            KSU_REPO_URL2="tiann/KernelSU"
+          fi
+          
+          KSU_REF=""
+          KSU_URL=""
+          if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" ]]; then
+            TAG=$(git ls-remote --tags --sort=-v:refname "$KSU_REPO_URL" | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
+            KSU_REF="${TAG:-UNKNOWN_TAG}" # Default if empty
+            KSU_URL="https://github.com/$KSU_REPO_URL2/releases/tag/$KSU_REF"
+          elif [[ -n "$KSU_BRANCH" ]]; then # Only try fetching dev/other if KSU_BRANCH is set
+            COMMIT_HASH=$(git ls-remote "$KSU_REPO_URL" "refs/heads/$KSU_BRANCH" | awk '{ print $1 }')
+            KSU_REF="${COMMIT_HASH:-UNKNOWN_COMMIT}" # Default if empty
+            KSU_URL="https://github.com/$KSU_REPO_URL2/commit/$KSU_REF"
+          else
+            echo "Error: KSU branch not determined. KSU commit info will be incomplete." >&2
+          fi
+          
+          # Initialize the final RELEASE_NOTES with the base content
+          FINAL_RELEASE_NOTES="${{ env.INITIAL_RELEASE_NOTES }}"
+          
+          # Add KSU Manager URL to notes
+          if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
+            FINAL_RELEASE_NOTES+="\nOfficial Manager:\n-> https://github.com/tiann/KernelSU"
+          elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
+            FINAL_RELEASE_NOTES+="\nNext Manager:\n-> https://github.com/KernelSU-Next/KernelSU-Next"
+          elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
+            FINAL_RELEASE_NOTES+="\nMKSU Manager:\n-> https://github.com/5ec1cff/KernelSU"
+          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
+            FINAL_RELEASE_NOTES+="\nSukiSU Manager:\n-> https://github.com/ShirkNeko/SukiSU-Ultra"
+          fi
+          
+          # Add detailed commit info section header
+          FINAL_RELEASE_NOTES+="\n\nLTO: thin"
+          FINAL_RELEASE_NOTES+="\n\n<details>"
+          FINAL_RELEASE_NOTES+="\n<summary>Commit Information</summary>"
+          FINAL_RELEASE_NOTES+="\n\nCommit hashes and links (the following commits refer to the progress of KSU or SUSFS at the time of this compilation):"
+          FINAL_RELEASE_NOTES+="\n- **KernelSU is ${{ inputs.kernelsu_variant }}-${KSU_BRANCH}** (Commit): [${KSU_REF}](${KSU_URL})"
+          FINAL_RELEASE_NOTES+="\n- **SUSFS4KSU** (Commit):"
+
+          # SUSFS Commit Fetching and Notes Generation
+          GITLAB_OWNER="simonpunk"
+          GITLAB_REPO="susfs4ksu"
+
+          declare -A BRANCH_MAP=(
+            ["a12-5.10"]="gki-android12-5.10"
+            ["a13-5.10"]="gki-android13-5.10"
+            ["a13-5.15"]="gki-android13-5.15"
+            ["a14-5.15"]="gki-android14-5.15"
+            ["a14-6.1"]="gki-android14-6.1"
+            ["a15-6.6"]="gki-android15-6.6"
+          )
+          
+          declare -a KERNELS_TO_FETCH_SUSFS
+          if [[ "${{ inputs.kernels_to_build }}" == "all" ]]; then
+            for key in "${!BRANCH_MAP[@]}"; do
+              KERNELS_TO_FETCH_SUSFS+=("$key")
+            done
+          else
+            IFS=',' read -r -a INPUT_KERNELS <<< "${{ inputs.kernels_to_build }}"
+            for kernel_input in "${INPUT_KERNELS[@]}"; do
+              case "$kernel_input" in
+                "a12") KERNELS_TO_FETCH_SUSFS+=("a12-5.10") ;;
+                "a13") KERNELS_TO_FETCH_SUSFS+=("a13-5.10" "a13-5.15") ;;
+                "a14") KERNELS_TO_FETCH_SUSFS+=("a14-5.15" "a14-6.1") ;;
+                "a15") KERNELS_TO_FETCH_SUSFS+=("a15-6.6") ;;
+                *) KERNELS_TO_FETCH_SUSFS+=("$kernel_input") ;;
+              esac
+            done
+            KERNELS_TO_FETCH_SUSFS=( $(printf "%s\n" "${KERNELS_TO_FETCH_SUSFS[@]}" | sort -u) ) # Deduplicate
           fi
 
-          echo "KSU_REF=$REF" >> $GITHUB_ENV
-          echo "KSU_URL=$URL" >> $GITHUB_ENV
-
-      - name: Bump tag & set release name
-        run: |
-          SUSFS_VERSION="1.5.8"
-          LATEST_TAG=$(git tag --list "v${SUSFS_VERSION}-r*" --sort=-v:refname | head -n1)
-          if [[ -z "$LATEST_TAG" ]]; then NEXT=1; else SUF=${LATEST_TAG##*-r}; NEXT=$((SUF+1)); fi
-          NEW_TAG="v${SUSFS_VERSION}-r${NEXT}"
-          git tag "$NEW_TAG" && git push origin "$NEW_TAG"
-          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
-          echo "RELEASE_NAME=GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS ${SUSFS_VERSION}-r${NEXT}" >> $GITHUB_ENV
-
-      - name: Build RELEASE_NOTES
-        run: |
-          echo 'RELEASE_NOTES<<EOF' >> $GITHUB_ENV
-          echo "## GKI KernelSU & SUSFS ${SUSFS_VERSION} r${NEXT}" >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "### Kernels Built" >> $GITHUB_ENV
-          [[ "${{ inputs.kernels_to_build }}" == "all" || "${{ inputs.kernels_to_build }}" =~ "a12-5.10" ]] && echo "- Android12-5.10" >> $GITHUB_ENV
-          [[ "${{ inputs.kernels_to_build }}" == "all" || "${{ inputs.kernels_to_build }}" =~ "a13-5.10" ]] && echo "- Android13-5.10" >> $GITHUB_ENV
-          [[ "${{ inputs.kernels_to_build }}" == "all" || "${{ inputs.kernels_to_build }}" =~ "a13-5.15" ]] && echo "- Android13-5.15" >> $GITHUB_ENV
-          [[ "${{ inputs.kernels_to_build }}" == "all" || "${{ inputs.kernels_to_build }}" =~ "a14-5.15" ]] && echo "- Android14-5.15" >> $GITHUB_ENV
-          [[ "${{ inputs.kernels_to_build }}" == "all" || "${{ inputs.kernels_to_build }}" =~ "a14-6.1"  ]] && echo "- Android14-6.1"  >> $GITHUB_ENV
-          [[ "${{ inputs.kernels_to_build }}" == "all" || "${{ inputs.kernels_to_build }}" =~ "a15-6.6"  ]] && echo "- Android15-6.6"  >> $GITHUB_ENV
-          echo "" >> $GITHUB_ENV
-          echo "### SUSFS Commits" >> $GITHUB_ENV
-          for BR in gki-android12-5.10 gki-android13-5.10 gki-android13-5.15 gki-android14-5.15 gki-android14-6.1 gki-android15-6.6; do
-            H=$(git ls-remote https://gitlab.com/simonpunk/susfs4ksu.git refs/heads/$BR | awk '{print $1}')
-            [[ -n "$H" ]] && echo "- **$BR**: [$H](https://gitlab.com/simonpunk/susfs4ksu/-/commit/$H)" >> $GITHUB_ENV
+          for kernel_id in "${KERNELS_TO_FETCH_SUSFS[@]}"; do
+            susfs_branch_name="${BRANCH_MAP[$kernel_id]}"
+            
+            if [[ -n "$susfs_branch_name" ]]; then
+              SUSFS_COMMIT_HASH=$(git ls-remote "https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO.git" "refs/heads/$susfs_branch_name" | awk '{ print $1 }')
+              SUSFS_COMMIT_HASH="${SUSFS_COMMIT_HASH:-UNKNOWN_COMMIT}" # Default if empty
+              SUSFS_COMMIT_URL="https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO/-/commit/$SUSFS_COMMIT_HASH"
+              FINAL_RELEASE_NOTES+="\n  - ${kernel_id}: [${SUSFS_COMMIT_HASH}](${SUSFS_COMMIT_URL})"
+            fi
           done
-          echo "" >> $GITHUB_ENV
-          echo "### Manager" >> $GITHUB_ENV
-          case "${{ inputs.kernelsu_variant }}" in
-            Official) echo "-> https://github.com/tiann/KernelSU"       >> $GITHUB_ENV ;;
-            Next)     echo "-> https://github.com/KernelSU-Next/KernelSU-Next" >> $GITHUB_ENV ;;
-            MKSU)     echo "-> https://github.com/5ec1cff/KernelSU"     >> $GITHUB_ENV ;;
-            SukiSU)   echo "-> https://github.com/ShirkNeko/SukiSU-Ultra"   >> $GITHUB_ENV ;;
-          esac
-          echo 'EOF' >> $GITHUB_ENV
+          
+          FINAL_RELEASE_NOTES+="\n\n</details>" # Close details tag
 
-      - name: Create GitHub Release
-        uses: softprops/action-gh-release@v1
+          echo "FULL_RELEASE_NOTES<<EOF" >> $GITHUB_ENV
+          echo -e "$FINAL_RELEASE_NOTES" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          
+      - name: Generate and Create New Tag
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name:   ${{ env.NEW_TAG }}
-          name:       ${{ env.RELEASE_NAME }}
-          body:       ${{ env.RELEASE_NOTES }}
-          prerelease: ${{ inputs.pre_release }}
+        run: |
+            LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name')
+            
+            if [ -z "$LATEST_TAG" ]; then
+              LATEST_TAG="v1.5.8-r0"
+            fi
+            
+            BASE_VERSION=$(echo "$LATEST_TAG" | awk -F'-r' '{print $1}')
+            REVISION=$(echo "$LATEST_TAG" | awk -F'-r' '{print $2}')
+            
+            if [[ "$BASE_VERSION" != "v1.5.8" ]]; then
+              REVISION=0
+            fi
+            
+            REVISION=$((REVISION + 1))
+            
+            NEW_TAG="v1.5.8-r${REVISION}"
+            
+            echo "New tag: $NEW_TAG"
+            echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
+            
+            git tag $NEW_TAG
+            git push --tags
 
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
           path: ./downloaded-artifacts
+          
+      - name: Set KSU Version for Release Name
+        run: |
+          KSU_VERSION_SUFFIX=""
+          if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
+            git clone https://github.com/KernelSU-Next/KernelSU-Next.git --depth 1 temp_ksu_repo || true
+            cd temp_ksu_repo || exit 1
+            KSU_GIT_VERSION=$(git rev-list --count HEAD)
+            KSU_VERSION_SUFFIX="($((10000 + KSU_GIT_VERSION + 200)))"
+            cd .. && rm -rf temp_ksu_repo # Clean up clone
+          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
+            git clone https://github.com/SukiSU-Ultra/SukiSU-Ultra.git --depth 1 temp_ksu_repo || true
+            cd temp_ksu_repo || exit 1
+            KSU_GIT_VERSION=$(git rev-list --count HEAD)
+            KSU_VERSION_SUFFIX="($((10000 + KSU_GIT_VERSION + 606)))"
+            cd .. && rm -rf temp_ksu_repo # Clean up clone
+          fi
+          echo "RELEASE_NAME=${{ env.RELEASE_NAME }}${KSU_VERSION_SUFFIX} & SUSFS v1.5.8" >> $GITHUB_ENV
 
-      - name: Upload Release Assets
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        with:
+          tag_name: ${{ env.NEW_TAG }}
+          prerelease: true
+          release_name: ${{ env.RELEASE_NAME }}
+          body: ${{ env.FULL_RELEASE_NOTES }} # Use the combined notes
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Dynamically Upload Release Assets
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          if ls ./downloaded-artifacts/*Manager*/*.apk >/dev/null 2>&1; then
-            gh release upload "${{ env.NEW_TAG }}" ./downloaded-artifacts/*Manager*/*.apk
-          fi
-          for dir in ./downloaded-artifacts/*_kernel-*; do
-            [ -d "$dir" ] && gh release upload "${{ env.NEW_TAG }}" "$dir"/*
-          done
+          echo "Uploading manager files..."
+          find "./downloaded-artifacts" -type f -name "*Manager*" -exec gh release upload ${{ env.NEW_TAG }} {} \; || true
 
-      - name: Display uploaded files
+          echo "Uploading kernel files..."
+          find "./downloaded-artifacts" -type f -name "*_kernel-*" -exec gh release upload ${{ env.NEW_TAG }} {} \; || true
+
+      - name: Display Files Uploaded
         run: |
-          find ./downloaded-artifacts -type f
+          echo "GitHub release created with the following files:"
+          ls -R ./downloaded-artifacts/
+
+      #- name: Send Telegram Message on Push
+      #  env:
+      #    TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
+      #    TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
+      #    TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TELEGRAM_MESSAGE_THREAD_ID }}
+      #  run: |
+      #      curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
+      #      -d "chat_id=$TELEGRAM_CHAT_ID" \
+      #      -d "message_thread_id=$TELEGRAM_MESSAGE_THREAD_ID" \
+      #      -d "text=Latest release: \nhttps://github.com/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}/releases/tag/${{ env.NEW_TAG }}\n${{ env.FULL_RELEASE_NOTES }}"
+            
