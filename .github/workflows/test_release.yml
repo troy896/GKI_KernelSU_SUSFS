@@ -1,8 +1,8 @@
 name: Test Release
 
 permissions:
-  contents: write
-  actions: write
+  contents: write # Needed for creating releases and pushing tags
+  actions: write   # Needed for calling reusable workflows (if applicable, though less direct in this setup)
   
 on:
   workflow_dispatch:
@@ -15,7 +15,7 @@ on:
       kernels_to_build:
         description: |
           Comma-separated list of kernels to build/release, e.g.:
-            a12-5.10,a13-5.10,a13-5.15,a14-5.15,a14-6.1,a15-6.6
+            a12-5.10,a13-5.10,a13-5.15,a14-5.15,a14-6.1,a15-6.6,a12-5.12
           or "all" to build every kernel.
         required: true
         type: string
@@ -61,17 +61,35 @@ on:
 
 jobs:
   get_manager:
+    # This job assumes a separate workflow for fetching the manager.
+    # Ensure ./.github/workflows/get-manager.yml exists and functions correctly.
     uses: ./.github/workflows/get-manager.yml
-    secrets: inherit
+    secrets: inherit # Pass all repository secrets to this reusable workflow
     with:
       kernelsu_variant: ${{ inputs.kernelsu_variant }}
+
+  # Kernel build jobs - each one uses a dedicated sub-workflow
+  # Ensure ./.github/workflows/kernel-aXX-Y.Y.yml files exist for each of these.
+  # The 'if' conditions determine which kernel build jobs run based on user input.
 
   build-kernel-a12-5-10:
     if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.10')
     uses: ./.github/workflows/kernel-a12-5.10.yml
     secrets: inherit
     with:
-      make_release: true
+      make_release: ${{ inputs.make_release }}
+      kernelsu_variant: ${{ inputs.kernelsu_variant }}
+      kernelsu_branch: ${{ inputs.kernelsu_branch }}
+      version: ${{ inputs.version }}
+      use_zram: ${{ inputs.use_zram }}
+      use_kpm: ${{ inputs.use_kpm }}
+
+  build-kernel-a12-5-12:
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.12')
+    uses: ./.github/workflows/kernel-a12-5.12.yml # <--- ENSURE THIS FILE EXISTS
+    secrets: inherit
+    with:
+      make_release: ${{ inputs.make_release }}
       kernelsu_variant: ${{ inputs.kernelsu_variant }}
       kernelsu_branch: ${{ inputs.kernelsu_branch }}
       version: ${{ inputs.version }}
@@ -79,7 +97,7 @@ jobs:
       use_kpm: ${{ inputs.use_kpm }}
 
   build-kernel-a13-5-10:
-    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10')
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13')
     uses: ./.github/workflows/kernel-a13-5.10.yml
     secrets: inherit
     with:
@@ -103,7 +121,7 @@ jobs:
       use_kpm: ${{ inputs.use_kpm }}
 
   build-kernel-a14-5-15:
-    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14-5.15')
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14-5.15') || contains(github.event.inputs.kernels_to_build, 'a14')
     uses: ./.github/workflows/kernel-a14-5.15.yml
     secrets: inherit
     with:
@@ -141,25 +159,29 @@ jobs:
   trigger-release:
     runs-on: ubuntu-latest
     permissions:
-      contents: write
-      actions: write
+      contents: write # Needed for creating releases and pushing tags
+      actions: write   # Needed for reading workflow run data for artifact download (less direct for this)
+    # The 'needs' section ensures all selected kernel builds (and get_manager) complete successfully before release.
     needs:
         - get_manager
         - build-kernel-a12-5-10
+        - build-kernel-a12-5-12
         - build-kernel-a13-5-10
         - build-kernel-a13-5-15
         - build-kernel-a14-5-15
         - build-kernel-a14-6-1
         - build-kernel-a15-6-6
-    if: ${{ inputs.make_release }}
+    if: ${{ inputs.make_release }} # Only run the release job if make_release input is true
     env:
       REPO_OWNER: Kavi 
       REPO_NAME: GKI_KernelSU_SUSFS
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }} 
 
+      # Initial part of the release name, will be appended with KSU version later
       RELEASE_NAME: "GKI Kernel: ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }} ${{ inputs.kernelsu_variant }}"
         
-      INITIAL_RELEASE_NOTES: | # Initial fixed part of release notes
+      # Fixed part of the release notes, before dynamic content is added
+      INITIAL_RELEASE_NOTES: |
         This release includes **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU' || '' }}${{ inputs.kernelsu_variant }}, please note the KSU version here**, SUSFS v1.5.8, LZ4KD
 
         Features:
@@ -190,7 +212,9 @@ jobs:
         uses: actions/checkout@v3
 
       - name: Fetch KSU and SUSFS Commit Info and Build Final Release Notes
+        id: build_notes # Give this step an ID to access its outputs if needed later
         run: |
+          # --- KSU Branch Determination ---
           KSU_BRANCH=""
           if [[ "${{ inputs.kernelsu_branch }}" == "Dev(开发)" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
             if [[ "${{ inputs.kernelsu_variant }}" == "Official" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
@@ -199,8 +223,9 @@ jobs:
               KSU_BRANCH="next"
             fi
           fi
-          echo "KSU_BRANCH=$KSU_BRANCH" >> $GITHUB_ENV
+          echo "KSU_BRANCH=$KSU_BRANCH" >> $GITHUB_ENV # Store KSU_BRANCH for later steps
 
+          # --- KSU Repository URLs ---
           KSU_REPO_URL=""
           KSU_REPO_URL2=""
           if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
@@ -216,29 +241,31 @@ jobs:
             KSU_REPO_URL="https://github.com/ShirkNeko/KernelSU.git"
             KSU_REPO_URL2="ShirkNeko/KernelSU"
           else
-            echo "Warning: Unknown KernelSU variant. Defaulting to Official for URL generation."
+            echo "Warning: Unknown KernelSU variant selected. Defaulting to Official for URL generation."
             KSU_REPO_URL="https://github.com/tiann/KernelSU.git"
             KSU_REPO_URL2="tiann/KernelSU"
           fi
           
+          # --- Fetch KSU Commit/Tag ---
           KSU_REF=""
           KSU_URL=""
           if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" ]]; then
             TAG=$(git ls-remote --tags --sort=-v:refname "$KSU_REPO_URL" | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
-            KSU_REF="${TAG:-UNKNOWN_TAG}" # Default if empty
+            KSU_REF="${TAG:-UNKNOWN_TAG}" # Use UNKNOWN_TAG if tag fetch fails
             KSU_URL="https://github.com/$KSU_REPO_URL2/releases/tag/$KSU_REF"
           elif [[ -n "$KSU_BRANCH" ]]; then # Only try fetching dev/other if KSU_BRANCH is set
             COMMIT_HASH=$(git ls-remote "$KSU_REPO_URL" "refs/heads/$KSU_BRANCH" | awk '{ print $1 }')
-            KSU_REF="${COMMIT_HASH:-UNKNOWN_COMMIT}" # Default if empty
+            KSU_REF="${COMMIT_HASH:-UNKNOWN_COMMIT}" # Use UNKNOWN_COMMIT if hash fetch fails
             KSU_URL="https://github.com/$KSU_REPO_URL2/commit/$KSU_REF"
           else
-            echo "Error: KSU branch not determined. KSU commit info will be incomplete." >&2
+            echo "Error: KSU branch could not be determined. KSU commit information will be incomplete." >&2
           fi
           
-          # Initialize the final RELEASE_NOTES with the base content
+          # --- Initialize Final Release Notes ---
+          # Start with the fixed part defined in env.INITIAL_RELEASE_NOTES
           FINAL_RELEASE_NOTES="${{ env.INITIAL_RELEASE_NOTES }}"
           
-          # Add KSU Manager URL to notes
+          # --- Add KSU Manager URL to Notes ---
           if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
             FINAL_RELEASE_NOTES+="\nOfficial Manager:\n-> https://github.com/tiann/KernelSU"
           elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
@@ -249,7 +276,7 @@ jobs:
             FINAL_RELEASE_NOTES+="\nSukiSU Manager:\n-> https://github.com/ShirkNeko/SukiSU-Ultra"
           fi
           
-          # Add detailed commit info section header
+          # --- Add Commit Information Section Header ---
           FINAL_RELEASE_NOTES+="\n\nLTO: thin"
           FINAL_RELEASE_NOTES+="\n\n<details>"
           FINAL_RELEASE_NOTES+="\n<summary>Commit Information</summary>"
@@ -257,51 +284,71 @@ jobs:
           FINAL_RELEASE_NOTES+="\n- **KernelSU is ${{ inputs.kernelsu_variant }}-${KSU_BRANCH}** (Commit): [${KSU_REF}](${KSU_URL})"
           FINAL_RELEASE_NOTES+="\n- **SUSFS4KSU** (Commit):"
 
-          # SUSFS Commit Fetching and Notes Generation
+          # --- SUSFS Commit Fetching and Notes Generation ---
           GITLAB_OWNER="simonpunk"
           GITLAB_REPO="susfs4ksu"
 
+          # This map defines the relationship between kernel IDs (used in inputs)
+          # and their corresponding SUSFS Git branch names.
           declare -A BRANCH_MAP=(
             ["a12-5.10"]="gki-android12-5.10"
+            ["a12-5.12"]="gki-android12-5.12"
             ["a13-5.10"]="gki-android13-5.10"
             ["a13-5.15"]="gki-android13-5.15"
             ["a14-5.15"]="gki-android14-5.15"
             ["a14-6.1"]="gki-android14-6.1"
             ["a15-6.6"]="gki-android15-6.6"
+            # Add new kernel mappings here: ["your-kernel-id"]="gki-androidXX-Y.Y"
           )
           
+          # Determine which kernel SUSFS commits to fetch based on user input
           declare -a KERNELS_TO_FETCH_SUSFS
           if [[ "${{ inputs.kernels_to_build }}" == "all" ]]; then
+            # If "all" is selected, include all known SUSFS kernel IDs from BRANCH_MAP
             for key in "${!BRANCH_MAP[@]}"; do
               KERNELS_TO_FETCH_SUSFS+=("$key")
             done
           else
+            # Otherwise, parse the comma-separated input
             IFS=',' read -r -a INPUT_KERNELS <<< "${{ inputs.kernels_to_build }}"
             for kernel_input in "${INPUT_KERNELS[@]}"; do
+              # Handle aliases (e.g., 'a12' should include 'a12-5.10' and 'a12-5.12')
               case "$kernel_input" in
-                "a12") KERNELS_TO_FETCH_SUSFS+=("a12-5.10") ;;
+                "a12") KERNELS_TO_FETCH_SUSFS+=("a12-5.10" "a12-5.12") ;;
                 "a13") KERNELS_TO_FETCH_SUSFS+=("a13-5.10" "a13-5.15") ;;
                 "a14") KERNELS_TO_FETCH_SUSFS+=("a14-5.15" "a14-6.1") ;;
                 "a15") KERNELS_TO_FETCH_SUSFS+=("a15-6.6") ;;
-                *) KERNELS_TO_FETCH_SUSFS+=("$kernel_input") ;;
+                *) 
+                  # Add specific kernel IDs directly if they exist in the BRANCH_MAP
+                  if [[ -n "${BRANCH_MAP[$kernel_input]}" ]]; then
+                    KERNELS_TO_FETCH_SUSFS+=("$kernel_input")
+                  else
+                    echo "Warning: Input kernel '$kernel_input' does not have a defined SUSFS branch mapping. Skipping." >&2
+                  fi
+                  ;;
               esac
             done
-            KERNELS_TO_FETCH_SUSFS=( $(printf "%s\n" "${KERNELS_TO_FETCH_SUSFS[@]}" | sort -u) ) # Deduplicate
+            # Remove any duplicates and sort for consistent output
+            KERNELS_TO_FETCH_SUSFS=( $(printf "%s\n" "${KERNELS_TO_FETCH_SUSFS[@]}" | sort -u) )
           fi
 
+          # Loop through the determined SUSFS kernel IDs and fetch their commits
           for kernel_id in "${KERNELS_TO_FETCH_SUSFS[@]}"; do
             susfs_branch_name="${BRANCH_MAP[$kernel_id]}"
             
-            if [[ -n "$susfs_branch_name" ]]; then
+            if [[ -n "$susfs_branch_name" ]]; then # Ensure a branch name was found for the kernel_id
               SUSFS_COMMIT_HASH=$(git ls-remote "https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO.git" "refs/heads/$susfs_branch_name" | awk '{ print $1 }')
-              SUSFS_COMMIT_HASH="${SUSFS_COMMIT_HASH:-UNKNOWN_COMMIT}" # Default if empty
+              SUSFS_COMMIT_HASH="${SUSFS_COMMIT_HASH:-UNKNOWN_COMMIT}" # Default if hash fetch fails
               SUSFS_COMMIT_URL="https://gitlab.com/$GITLAB_OWNER/$GITLAB_REPO/-/commit/$SUSFS_COMMIT_HASH"
               FINAL_RELEASE_NOTES+="\n  - ${kernel_id}: [${SUSFS_COMMIT_HASH}](${SUSFS_COMMIT_URL})"
+            else
+              echo "Warning: SUSFS branch name not found for kernel ID: $kernel_id. Cannot fetch commit info." >&2
             fi
           done
           
-          FINAL_RELEASE_NOTES+="\n\n</details>" # Close details tag
+          FINAL_RELEASE_NOTES+="\n\n</details>" # Close the details tag
 
+          # Export the final release notes to an environment variable for the release step
           echo "FULL_RELEASE_NOTES<<EOF" >> $GITHUB_ENV
           echo -e "$FINAL_RELEASE_NOTES" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
@@ -310,84 +357,94 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-            LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name')
+            LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' 2>/dev/null) # Redirect stderr to dev/null for cleaner output
             
             if [ -z "$LATEST_TAG" ]; then
+              echo "No previous tags found. Starting from v1.5.8-r0."
               LATEST_TAG="v1.5.8-r0"
             fi
             
             BASE_VERSION=$(echo "$LATEST_TAG" | awk -F'-r' '{print $1}')
             REVISION=$(echo "$LATEST_TAG" | awk -F'-r' '{print $2}')
             
+            # Reset revision if base version changes, or increment
             if [[ "$BASE_VERSION" != "v1.5.8" ]]; then
+              echo "Base version changed from $BASE_VERSION to v1.5.8. Resetting revision to 0."
               REVISION=0
             fi
             
-            REVISION=$((REVISION + 1))
+            REVISION=$((REVISION + 1)) # Increment revision number
             
             NEW_TAG="v1.5.8-r${REVISION}"
             
-            echo "New tag: $NEW_TAG"
-            echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
+            echo "New tag generated: $NEW_TAG"
+            echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV # Store new tag for release step
             
-            git tag $NEW_TAG
-            git push --tags
+            git tag "$NEW_TAG" # Create local git tag
+            git push --tags     # Push tags to GitHub
 
       - name: Download Artifacts
         uses: actions/download-artifact@v4
         with:
-          path: ./downloaded-artifacts
-          
-      - name: Set KSU Version for Release Name
+          path: ./downloaded-artifacts # All artifacts will be downloaded into this directory
+
+      - name: Set KSU Version for Final Release Name
         run: |
           KSU_VERSION_SUFFIX=""
           if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
+            # Clone into a temporary directory to avoid conflicts
             git clone https://github.com/KernelSU-Next/KernelSU-Next.git --depth 1 temp_ksu_repo || true
-            cd temp_ksu_repo || exit 1
-            KSU_GIT_VERSION=$(git rev-list --count HEAD)
-            KSU_VERSION_SUFFIX="($((10000 + KSU_GIT_VERSION + 200)))"
-            cd .. && rm -rf temp_ksu_repo # Clean up clone
+            if [ -d "temp_ksu_repo" ]; then # Check if clone was successful
+              cd temp_ksu_repo || exit 1
+              KSU_GIT_VERSION=$(git rev-list --count HEAD)
+              KSU_VERSION_SUFFIX="($((10000 + KSU_GIT_VERSION + 200)))"
+              cd .. # Go back to the original directory
+              rm -rf temp_ksu_repo # Clean up the temporary clone
+            else
+              echo "Warning: Could not clone KernelSU-Next repository for versioning." >&2
+            fi
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             git clone https://github.com/SukiSU-Ultra/SukiSU-Ultra.git --depth 1 temp_ksu_repo || true
-            cd temp_ksu_repo || exit 1
-            KSU_GIT_VERSION=$(git rev-list --count HEAD)
-            KSU_VERSION_SUFFIX="($((10000 + KSU_GIT_VERSION + 606)))"
-            cd .. && rm -rf temp_ksu_repo # Clean up clone
+            if [ -d "temp_ksu_repo" ]; then # Check if clone was successful
+              cd temp_ksu_repo || exit 1
+              KSU_GIT_VERSION=$(git rev-list --count HEAD)
+              KSU_VERSION_SUFFIX="($((10000 + KSU_GIT_VERSION + 606)))"
+              cd .. # Go back to the original directory
+              rm -rf temp_ksu_repo # Clean up the temporary clone
+            else
+              echo "Warning: Could not clone SukiSU-Ultra repository for versioning." >&2
+            fi
           fi
+          # Update the RELEASE_NAME environment variable with the KSU version suffix
           echo "RELEASE_NAME=${{ env.RELEASE_NAME }}${KSU_VERSION_SUFFIX} & SUSFS v1.5.8" >> $GITHUB_ENV
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
         with:
           tag_name: ${{ env.NEW_TAG }}
-          prerelease: true
-          release_name: ${{ env.RELEASE_NAME }}
-          body: ${{ env.FULL_RELEASE_NOTES }} # Use the combined notes
+          prerelease: true # Set to false if you want a stable release
+          release_name: ${{ env.RELEASE_NAME }} # Uses the dynamically updated release name
+          body: ${{ env.FULL_RELEASE_NOTES }} # Uses the dynamically built release notes
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Dynamically Upload Release Assets
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # Use GH_TOKEN for gh CLI
         run: |
-          echo "Uploading manager files..."
-          find "./downloaded-artifacts" -type f -name "*Manager*" -exec gh release upload ${{ env.NEW_TAG }} {} \; || true
+          echo "Listing downloaded artifacts for upload:"
+          ls -R ./downloaded-artifacts/ || true
 
-          echo "Uploading kernel files..."
-          find "./downloaded-artifacts" -type f -name "*_kernel-*" -exec gh release upload ${{ env.NEW_TAG }} {} \; || true
+          echo "Uploading manager files (if found)..."
+          # Find files named "*Manager*" anywhere under downloaded-artifacts and upload them
+          find "./downloaded-artifacts" -type f -name "*Manager*" -print -exec gh release upload "${{ env.NEW_TAG }}" {} \; || true
 
-      - name: Display Files Uploaded
+          echo "Uploading kernel files (if found)..."
+          # Find files named "*_kernel-*" (from the artifact names like a12-5.10_kernel-build-artifacts) and upload them
+          find "./downloaded-artifacts" -type f -name "*_kernel-*" -print -exec gh release upload "${{ env.NEW_TAG }}" {} \; || true
+
+          echo "Finished attempting to upload assets."
+
+      - name: Display Files Uploaded (Confirmation)
         run: |
-          echo "GitHub release created with the following files:"
-          ls -R ./downloaded-artifacts/
-
-      #- name: Send Telegram Message on Push
-      #  env:
-      #    TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-      #    TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-      #    TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TELEGRAM_MESSAGE_THREAD_ID }}
-      #  run: |
-      #      curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-      #      -d "chat_id=$TELEGRAM_CHAT_ID" \
-      #      -d "message_thread_id=$TELEGRAM_MESSAGE_THREAD_ID" \
-      #      -d "text=Latest release: \nhttps://github.com/${{ env.REPO_OWNER }}/${{ env.REPO_NAME }}/releases/tag/${{ env.NEW_TAG }}\n${{ env.FULL_RELEASE_NOTES }}"
-            
+          echo "Contents of downloaded-artifacts directory:"
+          ls -R ./downloaded-artifacts/ || true
