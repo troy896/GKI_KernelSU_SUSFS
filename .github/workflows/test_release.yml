@@ -138,10 +138,10 @@ jobs:
       use_zram: ${{ inputs.use_zram }}
       use_kpm: ${{ inputs.use_kpm }}
 
-  # NEW: Intermediate job to aggregate and check build statuses
+---
+## Build Status Checker
   check-build-status:
     runs-on: ubuntu-latest
-    # Needs all jobs so their results are available
     needs:
       - get_manager
       - build-kernel-a12-5-10
@@ -150,14 +150,14 @@ jobs:
       - build-kernel-a14-5-15
       - build-kernel-a14-6-1
       - build-kernel-a15-6-6
+    # ▼▼▼ CRITICAL FIX FOR SINGLE-JOB RELEASES ▼▼▼
+    if: always()
     outputs:
       should_release: ${{ steps.check.outputs.should_release }}
     steps:
       - name: Determine if release should proceed
         id: check
         env:
-          # Define boolean flags for whether each kernel job *should* have run,
-          # based on the workflow_dispatch input. These are evaluated by GitHub Actions.
           SHOULD_RUN_A12_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.10') }}
           SHOULD_RUN_A13_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13') }}
           SHOULD_RUN_A13_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13') || contains(github.event.inputs.kernels_to_build, 'a13-5.15') }}
@@ -165,7 +165,6 @@ jobs:
           SHOULD_RUN_A14_6_1: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14') || contains(github.event.inputs.kernels_to_build, 'a14-6.1') }}
           SHOULD_RUN_A15_6_6: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a15') || contains(github.event.inputs.kernels_to_build, 'a15-6.6') }}
 
-          # Get actual results of needed jobs. These are 'success', 'skipped', 'failure', etc.
           RESULT_GET_MANAGER: ${{ needs.get_manager.result }}
           RESULT_A12_5_10: ${{ needs.build-kernel-a12-5-10.result }}
           RESULT_A13_5_10: ${{ needs.build-kernel-a13-5-10.result }}
@@ -188,32 +187,26 @@ jobs:
           fi
 
           # Function to check a kernel job
-          # Arguments: <kernel_id> <should_run_flag> <actual_result>
           check_kernel_job() {
             local kernel_id=$1
-            local should_run_flag=$2 # This will be 'true' or 'false' (from GH Actions expression)
-            local actual_result=$3   # This will be 'success', 'skipped', 'failure', etc.
+            local should_run_flag=$2
+            local actual_result=$3
 
             echo "Checking kernel $kernel_id (Should Run: $should_run_flag, Actual Result: $actual_result)..."
 
             if [[ "$should_run_flag" == "true" ]]; then
-              # If the job was supposed to run, it MUST have succeeded.
               if [[ "$actual_result" != "success" ]]; then
                 SHOULD_PROCEED="false"
                 ERROR_MESSAGE+="Job for $kernel_id was expected to run but did not succeed (result: $actual_result). "
               fi
-            else # Job was NOT expected to run (its `if` condition was false)
-              # If it was not expected to run, it MUST have been skipped or not run.
-              # If it failed, that's an unexpected error, even if not selected.
+            else
               if [[ "$actual_result" == "failure" ]]; then
                 SHOULD_PROCEED="false"
                 ERROR_MESSAGE+="Job for $kernel_id was NOT expected to run but failed (result: $actual_result). This indicates a problem with its own 'if' condition or the workflow setup. "
               fi
-              # If actual_result is 'skipped' (which it should be for unselected jobs), SHOULD_PROCEED remains true.
             fi
           }
 
-          # Call the function for each kernel build job using the pre-evaluated ENV variables
           check_kernel_job "a12-5.10" "$SHOULD_RUN_A12_5_10" "$RESULT_A12_5_10"
           check_kernel_job "a13-5.10" "$SHOULD_RUN_A13_5_10" "$RESULT_A13_5_10"
           check_kernel_job "a13-5.15" "$SHOULD_RUN_A13_5_15" "$RESULT_A13_5_15"
@@ -223,19 +216,20 @@ jobs:
           
           echo "Final decision - SHOULD_PROCEED: $SHOULD_PROCEED"
           echo "Accumulated Errors: $ERROR_MESSAGE"
-          echo "should_release=$SHOULD_PROCEED" >> "$GITHUB_OUTPUT" # Set output for trigger-release job
+          echo "should_release=$SHOULD_PROCEED" >> "$GITHUB_OUTPUT"
           
           if [[ "$SHOULD_PROCEED" == "false" ]]; then
             echo "::error::Release blocked due to issues: $ERROR_MESSAGE"
-            exit 1 # Fail this job if release should not proceed
+            exit 1
           fi
 
+---
+## Release Trigger
   trigger-release:
     runs-on: ubuntu-latest
     permissions:
       contents: write
       actions: write
-    # Needs all jobs, including the checker job
     needs:
       - get_manager
       - build-kernel-a12-5-10
@@ -244,8 +238,7 @@ jobs:
       - build-kernel-a14-5-15
       - build-kernel-a14-6-1
       - build-kernel-a15-6-6
-      - check-build-status # Crucial dependency on the new checker job
-    # The 'if' condition is now much simpler and cleaner
+      - check-build-status
     if: ${{ inputs.make_release && needs.check-build-status.outputs.should_release == 'true' }}
     env:
       REPO_OWNER: Kavi 
@@ -345,7 +338,7 @@ jobs:
           FINAL_RELEASE_NOTES+="\n\n<details>"
           FINAL_RELEASE_NOTES+="\n<summary>Commit Information</summary>"
           FINAL_RELEASE_NOTES+="\n\nCommit hashes and links (the following commits refer to the progress of KSU or SUSFS at the time of this compilation):"
-          - **KernelSU is ${{ inputs.kernelsu_variant }}-${KSU_BRANCH}** (Commit): [${KSU_REF}](${KSU_URL})"
+          FINAL_RELEASE_NOTES+="\n- **KernelSU is ${{ inputs.kernelsu_variant }}-${KSU_BRANCH}** (Commit): [${KSU_REF}](${KSU_URL})"
           FINAL_RELEASE_NOTES+="\n- **SUSFS4KSU** (Commit):"
 
           GITLAB_OWNER="simonpunk"
