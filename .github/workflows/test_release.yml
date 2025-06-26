@@ -150,8 +150,7 @@ jobs:
       - build-kernel-a14-5-15
       - build-kernel-a14-6-1
       - build-kernel-a15-6-6
-    # ▼▼▼ CRITICAL FIX FOR SINGLE-JOB RELEASES ▼▼▼
-    if: always()
+    if: always() # CRITICAL FIX FOR SINGLE-JOB RELEASES - ensures this job always attempts to run
     outputs:
       should_release: ${{ steps.check.outputs.should_release }}
     steps:
@@ -239,7 +238,10 @@ jobs:
       - build-kernel-a14-6-1
       - build-kernel-a15-6-6
       - check-build-status
-    if: ${{ inputs.make_release && needs.check-build-status.outputs.should_release == 'true' }}
+    # This is the key change!
+    # It tells GitHub Actions to *always* attempt to run this job,
+    # regardless of whether some of its `needs` dependencies were skipped.
+    if: always() 
     env:
       REPO_OWNER: Kavi 
       REPO_NAME: GKI_KernelSU_SUSFS
@@ -272,11 +274,23 @@ jobs:
         -> https://github.com/sidex15/ksu_module_susfs
         
     steps:
+      # This first step now explicitly checks the release conditions.
+      # If these conditions are NOT met, this step will be SKIPPED,
+      # and all subsequent steps in this job will also be skipped.
+      - name: Conditional Release Check
+        id: release_check
+        if: ${{ inputs.make_release && needs.check-build-status.outputs.should_release == 'true' }}
+        run: echo "Release conditions met. Proceeding with release."
+
       - name: Checkout code
+        # This step, and all subsequent steps, now also needs to be conditional.
+        # It's generally cleaner to add the `if` to each step for this pattern.
+        if: ${{ steps.release_check.outcome == 'success' }}
         uses: actions/checkout@v3
 
       - name: Fetch KSU and SUSFS Commit Info and Build Final Release Notes
         id: build_notes
+        if: ${{ steps.release_check.outcome == 'success' }}
         run: |
           KSU_BRANCH=""
           if [[ "${{ inputs.kernelsu_branch }}" == "Dev(开发)" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
@@ -398,6 +412,7 @@ jobs:
           echo "EOF" >> $GITHUB_ENV
           
       - name: Generate and Create New Tag
+        if: ${{ steps.release_check.outcome == 'success' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -427,11 +442,13 @@ jobs:
             git push --tags
 
       - name: Download Artifacts
+        if: ${{ steps.release_check.outcome == 'success' }}
         uses: actions/download-artifact@v4
         with:
           path: ./downloaded-artifacts
 
       - name: Set KSU Version for Final Release Name
+        if: ${{ steps.release_check.outcome == 'success' }}
         run: |
           KSU_VERSION_SUFFIX=""
           if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
@@ -440,7 +457,7 @@ jobs:
               cd temp_ksu_repo || exit 1
               KSU_GIT_VERSION=$(git rev-list --count HEAD)
               KSU_VERSION_SUFFIX="($((10000 + KSU_GIT_VERSION + 200)))"
-              cd ..
+              cd "..
               rm -rf temp_ksu_repo
             else
               echo "Warning: Could not clone KernelSU-Next repository for versioning." >&2
@@ -460,6 +477,7 @@ jobs:
           echo "RELEASE_NAME=${{ env.RELEASE_NAME }}${KSU_VERSION_SUFFIX} & SUSFS v1.5.8" >> $GITHUB_ENV
 
       - name: Create GitHub Release
+        if: ${{ steps.release_check.outcome == 'success' }}
         uses: actions/create-release@v1
         with:
           tag_name: ${{ env.NEW_TAG }}
@@ -469,6 +487,7 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Dynamically Upload Release Assets
+        if: ${{ steps.release_check.outcome == 'success' }}
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
@@ -484,6 +503,7 @@ jobs:
           echo "Finished attempting to upload assets."
 
       - name: Display Files Uploaded (Confirmation)
+        if: ${{ steps.release_check.outcome == 'success' }}
         run: |
           echo "Contents of downloaded-artifacts directory:"
           ls -R ./downloaded-artifacts/ || true
