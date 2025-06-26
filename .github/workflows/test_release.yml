@@ -83,19 +83,7 @@ jobs:
       version: ${{ inputs.version }}
       use_zram: ${{ inputs.use_zram }}
       use_kpm: ${{ inputs.use_kpm }}
-
-  build-kernel-a12-5-12:
-    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.12')
-    uses: ./.github/workflows/kernel-a12-5.12.yml # <--- ENSURE THIS FILE EXISTS
-    secrets: inherit
-    with:
-      make_release: ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
-
+  
   build-kernel-a13-5-10:
     if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13')
     uses: ./.github/workflows/kernel-a13-5.10.yml
