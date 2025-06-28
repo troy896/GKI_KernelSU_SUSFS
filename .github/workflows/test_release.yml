@@ -72,7 +72,7 @@ jobs:
       kernelsu_variant: ${{ inputs.kernelsu_variant }}
 
   build-kernel-a12-5-10:
-    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to极build, 'a12-5.10')
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.10')
     uses: ./.github/workflows/kernel-a12-5.10.yml
     secrets: inherit
     with:
