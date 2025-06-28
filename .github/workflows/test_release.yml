@@ -399,7 +399,7 @@ jobs:
           echo -e "$FINAL_RELEASE_NOTES" >> $GITHUB_ENV
           echo "EOF" >> $GITHUB_ENV
           
-      # Install GitHub CLI and authenticate
+      # Install GitHub CLI only (authentication is automatic via GITHUB_TOKEN)
       - name: Install GitHub CLI
         if: ${{ steps.release_check.outcome == 'success' }}
         run: |
@@ -409,10 +409,6 @@ jobs:
             echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
             sudo apt update && sudo apt install gh -y
           }
-          
-      - name: Authenticate GitHub CLI
-        if: ${{ steps.release_check.outcome == 'success' }}
-        run: gh auth login --with-token <<< "$GITHUB_TOKEN"
         
       - name: Generate and Create New Tag
         if: ${{ steps.release_check.outcome == 'success' }}
@@ -420,6 +416,10 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e  # Exit on error
+          
+          # Configure Git user
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
           
           # Get the latest tag
           LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' 2>/dev/null || true)
