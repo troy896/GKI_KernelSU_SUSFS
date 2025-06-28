@@ -210,7 +210,7 @@ jobs:
             fi
           }
           
-          check_kernel_job "a12-5.10" "$SHOULD_RUN_A12_5_10" "$极RESULT_A12_5_10"
+          check_kernel_job "a12-5.10" "$SHOULD_RUN_A12_5_10" "$RESULT_A12_5_10"
           check_kernel_job "a13-5.10" "$SHOULD_RUN_A13_5_10" "$RESULT_A13_5_10"
           check_kernel_job "a13-5.15" "$SHOULD_RUN_A13_5_15" "$RESULT_A13_5_15"
           check_kernel_job "a14-5.15" "$SHOULD_RUN_A14_5_15" "$RESULT_A14_5_15"
