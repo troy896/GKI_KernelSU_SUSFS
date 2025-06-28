@@ -421,24 +421,24 @@ jobs:
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           
-          # Get the latest tag
-          LATEST_TAG=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[0].name' 2>/dev/null || true)
+          BASE_VERSION="v1.5.8"
           
-          if [ -z "$LATEST_TAG" ]; then
-            echo "No previous tags found. Starting from v1.5.8-r0."
-            LATEST_TAG="v1.5.8-r0"
-          fi
+          # Get all existing tags
+          EXISTING_TAGS=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[].name' 2>/dev/null || true)
           
-          BASE_VERSION=$(echo "$LATEST_TAG" | awk -F'-r' '{print $1}')
-          REVISION=$(echo "$LATEST_TAG" | awk -F'-r' '{print $2}')
+          # Find highest revision number for this base version
+          MAX_REVISION=0
+          while IFS= read -r tag; do
+            if [[ "$tag" =~ ^$BASE_VERSION-r([0-9]+)$ ]]; then
+              revision="${BASH_REMATCH[1]}"
+              if (( revision > MAX_REVISION )); then
+                MAX_REVISION=$revision
+              fi
+            fi
+          done <<< "$EXISTING_TAGS"
           
-          if [[ "$BASE_VERSION" != "v1.5.8" ]]; then
-            echo "Base version changed from $BASE_VERSION to v1.5.8. Resetting revision to 0."
-            REVISION=0
-          fi
-          
-          REVISION=$((REVISION + 1))
-          NEW_TAG="v1.5.8-r${REVISION}"
+          NEW_REVISION=$((MAX_REVISION + 1))
+          NEW_TAG="$BASE_VERSION-r$NEW_REVISION"
           
           echo "New tag generated: $NEW_TAG"
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
@@ -453,7 +453,7 @@ jobs:
         with:
           path: ./downloaded-artifacts
           
-      # NEW: Prepare artifacts for upload
+      # Prepare artifacts for upload
       - name: Prepare Artifacts for Upload
         if: ${{ steps.release_check.outcome == 'success' }}
         run: |
@@ -517,7 +517,7 @@ jobs:
           # Upload all files in the release-assets directory
           for file in ./release-assets/*; do
             echo "Uploading $file"
-            gh release upload "${{ env.NEW_TAG }}" "$file"
+            gh release upload "${{ env.NEW_TAG }}" "$file" || echo "Failed to upload $file"
           done
           
           echo "Upload completed!"
