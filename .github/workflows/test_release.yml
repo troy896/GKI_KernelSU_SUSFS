@@ -415,7 +415,7 @@ jobs:
           if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" ]]; then
             TAG=$(git ls-remote --tags --sort=-v:refname "$KSU_REPO_URL" | grep -o 'refs/tags/.*' | cut -d'/' -f3 | head -n1)
             KSU_REF="${TAG:-UNKNOWN_TAG}"
-            KSU_URL="https://github.com/$K极SU_REPO_URL2/releases/tag/$KSU_REF"
+            KSU_URL="https://github.com/$KSU_REPO_URL2/releases/tag/$KSU_REF"
           elif [[ -n "$KSU_BRANCH" ]]; then
             COMMIT_HASH=$(git ls-remote "$KSU_REPO_URL" "refs/heads/$KSU_BRANCH" | awk '{ print $1 }')
             KSU_REF="${COMMIT_HASH:-UNKNOWN_COMMIT}"
@@ -439,7 +439,7 @@ jobs:
           FINAL_RELEASE_NOTES+="\n\nLTO: thin"
           FINAL_RELEASE_NOTES+="\n\n<details>"
           FINAL_RELEASE_NOTES+="\n<summary>Commit Information</summary>"
-          FINAL_RELEASE_NOTES+="极\n\nCommit hashes and links (the following commits refer to the progress of KSU or SUSFS at the time of this compilation):"
+          FINAL_RELEASE_NOTES+="\n\nCommit hashes and links (the following commits refer to the progress of KSU or SUSFS at the time of this compilation):"
           FINAL_RELEASE_NOTES+="\n- **KernelSU is ${{ inputs.kernelsu_variant }}-${KSU_BRANCH}** (Commit): [${KSU_REF}](${KSU_URL})"
           FINAL_RELEASE_NOTES+="\n- **SUSFS4KSU** (Commit):"
           
