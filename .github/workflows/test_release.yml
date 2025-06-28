@@ -308,11 +308,14 @@ jobs:
           echo "New tag generated: $NEW_TAG"
           echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
           
-          # Create tag using GitHub API to avoid conflicts
-          gh api -X POST /repos/$REPO_OWNER/$REPO_NAME/git/refs \
-            -f ref="refs/tags/$NEW_TAG" \
-            -f sha="$GITHUB_SHA" \
-            --silent
+          # Create and push tag using git
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
+          
+          git tag -a "$NEW_TAG" -m "Release $NEW_TAG"
+          
+          # Push the tag to the remote repository
+          git push --tags
           
           echo "Tag $NEW_TAG created successfully"
           
