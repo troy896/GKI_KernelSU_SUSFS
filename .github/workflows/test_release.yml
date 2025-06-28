@@ -68,43 +68,7 @@ jobs:
       kernelsu_variant: ${{ inputs.kernelsu_variant }}
 
   build-kernel-a12-5-10:
-    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.10')
-    uses: ./.github/workflows/kernel-a12-5.10.yml
-    secrets: inherit
-    with:
-      make_release: ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
-
-  build-kernel-a13-5-10:
-    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13')
-    uses: ./.github/workflows/kernel-a13-5.10.yml
-    secrets: inherit
-    with:
-      make_release: ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
-
-  build-kernel-a13-5-15:
-    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13') || contains(github.event.inputs.kernels_to_build, 'a13-5.15')
-    uses: ./.github/workflows/kernel-a13-5.15.yml
-    secrets: inherit
-    with:
-      make_release: ${{ inputs.make_release }}
-      kernelsu_variant: ${{ inputs.kernelsu_variant }}
-      kernelsu_branch: ${{ inputs.kernelsu_branch }}
-      version: ${{ inputs.version }}
-      use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
-
-  build-kernel-a14-5-15:
-    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to极客江湖
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event极客江湖
       - build-kernel-a14-6-1
       - build-kernel-a15-6-6
     if: always()
@@ -115,180 +79,7 @@ jobs:
       SHOULD_RUN_A13_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13') }}
       SHOULD_RUN_A13_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13') || contains(github.event.inputs.kernels_to_build, 'a13-5.15') }}
       SHOULD_RUN_A14_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14-5.15') || contains(github.event.inputs.kernels_to_build, 'a14') }}
-      SHOULD_RUN_A14_6_1: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14') || contains(github.event.inputs.kernels_to_build, 'a14-6.1') }}
-      SHOULD_RUN_A15_6_6: ${{ contains(github.event.inputs.kernels_to_build, '极客江湖
-      - build-kernel-a14-6-1
-      - build-kernel-a15-6-6
-    if: always()
-    outputs:
-      should_release: ${{ steps.check.outputs.should_release }}
-    env:
-      SHOULD_RUN_A12_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.10') }}
-      SHOULD_RUN_A13_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13') }}
-      SHOULD_RUN_A13_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13') || contains(github.event.inputs.kernels_to_build, 'a13-5.15') }}
-      SHOULD_RUN_A14_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14-5.15') || contains(github.event.inputs.kernels_to_build, 'a14') }}
-      SHOULD_RUN_A14_6_1: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14') || contains(github.event.inputs.kernels_to_build, 'a14-6.1') }}
-      SHOULD_RUN_A15_6_6: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a15') || contains(github.event.inputs.kernels_to_build, 'a15-6.6') }}
-      
-      RESULT_GET_MANAGER: ${{ needs.get_manager.result }}
-      RESULT_A12_5_10: ${{ needs.build-kernel-a12-5-10.result }}
-      RESULT_A13_5_10: ${{ needs.build-kernel-a13-5-10.result }}
-      RESULT_A13_5_15: ${{ needs.build-kernel-a13-5-15.result }}
-      RESULT_A14_5_15: ${{ needs.build-kernel-a14-5-15.result }}
-      RESULT_A14_6_1: ${{ needs.build-kernel-a14-6-1.result }}
-      RESULT_A15_6_极客江湖
-      - build-kernel-a14-6-1
-      - build-kernel-a15-6-6
-    if: always()
-    outputs:
-      should_release: ${{ steps.check.outputs.should_release }}
-    env:
-      SHOULD_RUN_A12_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.10') }}
-      SHOULD_RUN_A13_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13') }}
-      SHOULD_RUN_A13_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13') || contains(github.event.inputs.kernels_to_build, 'a13-5.15') }}
-      SHOULD_RUN_A14_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14-5.15') || contains(github.event.inputs.kernels_to_build, 'a14') }}
-      SHOULD_RUN_A14_6_1: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14') || contains(github.event.inputs.kernels_to_build, 'a14-6.1') }}
-      SHOULD_RUN_A15_6_6: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a15') || contains(github.event.inputs.kernels_to_build, 'a15-6.6') }}
-      
-      RESULT_GET_MANAGER: ${{ needs.get_manager.result }}
-      RESULT_A12_5_10: ${{ needs.build-kernel-a12-5-10.result }}
-      RESULT_A13_5_10: ${{ needs.build-kernel-a13-5-10.result }}
-      RES极客江湖
-      - build-kernel-a14-6-1
-      - build-kernel-a15-6-6
-    if: always()
-    outputs:
-      should_release: ${{ steps.check.outputs.should_release }}
-    env:
-      SHOULD_RUN_A12_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.10') }}
-      SHOULD_RUN_A13_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13') }}
-      SHOULD_RUN_A13_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13') || contains(github.event.inputs.kernels_to_build, 'a13-5.15') }}
-      SHOULD_RUN_A14_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14-5.15') || contains(github.event.inputs.kernels_to_build, 'a14') }}
-      SHOULD_RUN_A14_6_1: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14') || contains(github.event.inputs.kernels_to_build, 'a14-6.1') }}
-      SHOULD_RUN_A15_6_6: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a15') || contains(github.event.inputs.kernels_to_build, 'a15-6.6') }}
-      
-      RESULT_GET_MANAGER: ${{ needs.get_manager.result }}
-      RESULT_A12_5_10: ${{ needs.build-kernel-a12-5-10.result }}
-      RESULT_A13_5_10: ${{ needs.build-kernel-a13-5-10.result }}
-      RESULT_A13_5_15: ${{ needs.build-kernel-a13-5-15.result }}
-      RESULT_A14_5_15: ${{ needs.build-kernel-a14-5-15.result }}
-      RESULT_A14_6_1: ${{ needs.build-kernel-a14-6-1.result }}
-      RESULT_A15_6_6: ${{ needs.build-kernel-a15-6-6.result }}
-    steps:
-      - name: Determine if release should proceed
-        id: check
-        run: |
-          SHOULD_PROCEED="true"
-          ERROR_MESSAGE=""
-          
-          echo "--- Checking Job Statuses ---"
-          echo "get_manager result: $RESULT_GET_MANAGER"
-          
-          # 1. Check get_manager job only if it was supposed to run
-          if [[ "${{ inputs.get_manager }}" == "true" ]]; then
-            if [[ "$RESULT_GET_MANAGER" != "success" ]]; then
-              SHOULD_PROCEED="false"
-              ERROR_MESSAGE+="get_manager job did not succeed (result: $RESULT_GET_MANAGER). "
-            fi
-          fi
-          
-          # Function to check a kernel job
-          check_kernel_job() {
-            local kernel_id=$1
-            local should_run_flag=$2
-            local actual_result=$3
-            
-            echo "Checking kernel $kernel_id (Should Run: $should_run_flag, Actual Result: $actual_result)..."
-            
-            if [[ "$should_run_flag" == "true" ]]; then
-              if [[ "$actual_result" != "success" ]]; then
-                SHOULD_PROCEED="false"
-                ERROR_MESSAGE+="Job for $kernel_id was expected to run but did not succeed (result: $actual_result). "
-              fi
-            else
-              if [[ "$actual_result" == "failure" ]]; then
-                SHOULD_PROCEED="false"
-                ERROR_MESSAGE+="Job for $kernel_id was NOT expected to run but failed (result: $actual_result). This indicates a problem. "
-              fi
-            fi
-          }
-          
-          check_kernel_job "a12-5.10" "$SHOULD_R极客江湖
-      - build-kernel-a14-6-1
-      - build-kernel-a15-6-6
-    if: always()
-    outputs:
-      should_release: ${{ steps.check.outputs.should_release }}
-    env:
-      SHOULD_RUN_A12_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.10') }}
-      SHOULD_RUN_A13_5_10: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13') }}
-      SHOULD_RUN_A13_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13') || contains(github.event.inputs.kernels_to_build, 'a13-5.15') }}
-      SHOULD_RUN_A14_5_15: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14-5.15') || contains(github.event.inputs.kernels_to_build, 'a14') }}
-      SHOULD_RUN_A14_6_1: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a14') || contains(github.event.inputs.kernels_to_build, 'a14-6.1') }}
-      SHOULD_RUN_A15_6_6: ${{ contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a15') || contains(github.event.inputs.kernels_to_build, 'a15-6.6') }}
-      
-      RESULT_GET_MANAGER: ${{ needs.get_manager.result }}
-      RESULT_A12_5_10: ${{ needs.build-kernel-a12-5-10.result }}
-      RESULT_A13_5_10: ${{ needs.build-kernel-a13-5-10.result }}
-      RESULT_A13_5_15: ${{ needs.build-kernel-a13-5-15.result }}
-      RESULT_A14_5_15: ${{ needs.build-kernel-a14-5-15.result }}
-      RESULT_A14_6_1: ${{ needs.build-kernel-a14-6-1.result }}
-      RESULT_A15_6_6: ${{ needs.build-kernel-a15-6-6.result }}
-    steps:
-      - name: Determine if release should proceed
-        id: check
-        run: |
-          SHOULD_PROCEED="true"
-          ERROR_MESSAGE=""
-          
-          echo "--- Checking Job Statuses ---"
-          echo "get_manager result: $RESULT_GET_MANAGER"
-          
-          # 1. Check get_manager job only if it was supposed to run
-          if [[ "${{ inputs.get_manager }}" == "true" ]]; then
-            if [[ "$RESULT_GET_MANAGER" != "success" ]]; then
-              SHOULD_PROCEED="false"
-              ERROR_MESSAGE+="get_manager job did not succeed (result: $RESULT_GET_MANAGER). "
-            fi
-          fi
-          
-          # Function to check a kernel job
-          check_kernel_job() {
-            local kernel_id=$1
-            local should_run_flag=$2
-            local actual_result=$3
-            
-            echo "Checking kernel $kernel_id (Should Run: $should_run_flag, Actual Result: $actual_result)..."
-            
-            if [[ "$should_run_flag" == "true" ]]; then
-              if [[ "$actual_result" != "success" ]]; then
-                SHOULD_PROCEED="false"
-                ERROR_MESSAGE+="Job for $kernel_id was expected to run but did not succeed (result: $actual_result). "
-              fi
-            else
-              if [[ "$actual_result" == "failure" ]]; then
-                SHOULD_PROCEED="false"
-                ERROR_MESSAGE+="Job for $kernel_id was NOT expected to run but failed (result: $actual_result). This indicates a problem. "
-              fi
-            fi
-          }
-          
-          check_kernel_job "a12-5.10" "$SHOULD_RUN_A12_5_10" "$RESULT_A12_5_10"
-          check_kernel_job "a13-5.10" "$SHOULD_RUN_A13_5_10" "$RESULT_A13_5_10"
-          check_kernel_job "a13-5.15" "$SHOULD_RUN_A13_5_15" "$RESULT_A13_5_15"
-          check_kernel_job "a14-5.15" "$SHOULD_RUN_A14_5_15" "$RESULT_A14_5_15"
-          check_kernel_job "a14-6.1" "$SHOULD_RUN_A14_6_1" "$RESULT_A14_6_1"
-          check_kernel_job "a15-6.6" "$SHOULD_RUN_A15_6_6" "$RESULT_A15_6_6"
-          
-          echo "Final decision - SHOULD_PROCEED: $SHOULD_PROCEED"
-          echo "Accumulated Errors: $ERROR_MESSAGE"
-          echo "should_release=$SHOULD_PROCEED" >> "$GITHUB_OUTPUT"
-          
-          if [[ "$SHOULD_PROCEED" == "false" ]]; then
-            echo "::error::Release blocked due to issues: $ERROR_MESSAGE"
-            exit 1
-          fi
-
+      SHOULD极客江湖
   trigger-release:
     runs-on: ubuntu-latest
     permissions:
@@ -341,141 +132,133 @@ jobs:
         run: |
           KSU_BRANCH=""
           if [[ "${{ inputs.kernelsu_branch }}" == "Dev(开发)" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
-            if [[ "${{ inputs.kernelsu_variant }}" == "Official" || "${{ inputs.kern极客江湖
+            if [[ "${{ inputs.kernelsu_variant }}" == "Official" || "${{ inputs.kernelsu_variant }}" == "MKSU" || "${{ inputs.kernelsu_variant }}" == "SukiSU" ]]; then
+              KSU_BRANCH="main"
+            elif [[ "${{ inputs.kernelsu_variant }}" == "Next" ]]; then
+              KSU_BRANCH="next"
+            fi
+          fi
+          
+          echo "KSU_BRANCH=$KSU_BRANCH" >> $GITHUB_ENV
+          
+          KSU_REPO_URL=""
+          KSU_REPO_URL2=""
+          if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
+            KSU_REPO_URL="https://github.com/tiann/KernelSU.git"
+            KSU_REPO_URL2="tiann/KernelSU"
+          elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
+            KSU_REPO_URL="https://github.com/KernelSU-Next/KernelSU-Next.git"
+            KSU_REPO_URL2="KernelSU-Next/KernelSU-Next"
+          elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
+            KSU_REPO_URL="https://github.com/5ec1cff/KernelSU.git"
+            KSU_REPO_URL2="5ec1cff/KernelSU"
+          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
+            KSU_REPO_URL="https://github.com/ShirkNeko/KernelSU.git"
+            KSU_REPO_URL2="ShirkNeko/KernelSU"
+          else
+            echo "Warning: Unknown KernelSU variant selected. Defaulting to Official for URL generation."
+            KSU_REPO_URL="https://github.com/tiann/KernelSU.git"
+            KSU_REPO_URL2="tiann/KernelSU"
+          fi
+          
+          KSU_REF=""
+          KSU_URL=""
+          if [[ "${{ inputs.kernelsu_branch }}" == "Stable(标准)" && "${{ inputs.kernelsu_variant }}" != "MKSU" ]]; then
+            TAG=$(git ls-remote --tags --sort=-v:refname "$K极客江湖
       - name: Install GitHub CLI
         if: ${{ steps.release_check.outcome == 'success' }}
         run: |
-          type -p gh >/dev/null || {
-            curl -sSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
-            sudo chmod go+r /usr/share/keyrings/githubcli-archive-keyring.gpg
-            echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
-            sudo apt update && sudo apt install gh -y
-          }
-        
-      - name: Generate and Create New Tag
-        if: ${{ steps.release_check.outcome == 'success' }}
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          set -e  # Exit on error
+          sudo apt update
+          sudo apt install -y curl
+          curl -fsSL https://cli.github.com/packages/githubcli-archive-keyring.gpg | sudo dd of=/usr/share/keyrings/githubcli-archive-keyring.gpg
+          echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/githubcli-archive-keyring.gpg] https://cli.github.com/packages stable main" | sudo tee /etc/apt/sources.list.d/github-cli.list >/dev/null
+          sudo apt update
+          sudo apt install -y gh
           
-          # Configure Git user
+      - name: Generate New Tag
+        if: ${{ steps.release_check.outcome == 'success' }}
+        run: |
+          set -e
+          
+          # Configure Git
           git config --global user.name "GitHub Actions"
           git config --global user.email "actions@github.com"
           
           BASE_VERSION="v1.5.8"
           
-          # Get all existing tags
-          EXISTING_TAGS=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[].name' 2>/dev/null || true)
+          # Get existing tags
+          EXISTING_TAGS=$(gh api repos/$REPO_OWNER/$REPO_NAME/tags --jq '.[].name' 2>/dev/null || echo "")
           
-          # Find highest revision number for this base version
+          # Find highest revision
           MAX_REVISION=0
           while IFS= read -r tag; do
-            if [[ "$tag" =~ ^$BASE_VERSION-r([0-9]+)$ ]]; then
-              revision="${BASH_REMATCH[1]}"
-              if (( revision > MAX_REVISION )); then
-                MAX_REVISION=$revision
+            if [[ "$tag" =~ ^${BASE_VERSION}-r([0-9]+)$ ]]; then
+              REV="${BASH_REMATCH[1]}"
+              if (( REV > MAX_REVISION )); then
+                MAX_REVISION=$REV
               fi
             fi
           done <<< "$EXISTING_TAGS"
           
           NEW_REVISION=$((MAX_REVISION + 1))
-          NEW_TAG="$BASE_VERSION-r$NEW_REVISION"
+          NEW_TAG="${BASE_VERSION}-r${NEW_REVISION}"
           
-          echo "New tag generated: $NEW_TAG"
-          echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
+          echo "New tag: $NEW_TAG"
+          echo "NEW_TAG=$NEW_TAG" >> $GITHUB_ENV
           
-          # Create and push tag only if it doesn't exist
+      - name: Create and Push Tag
+        if: ${{ steps.release_check.outcome == 'success' }}
+        run: |
+          # Create tag if doesn't exist locally
           if ! git rev-parse "$NEW_TAG" >/dev/null 2>&1; then
-            git tag "$NEW极客江湖
+            git tag "$NEW_TAG"
+          fi
+          
+          # Push tag if doesn't exist remotely
+          if ! git ls-remote --exit-code origin "refs/tags/$NEW_TAG" >/dev/null 2>&1; then
+            git push origin "$NEW_TAG"
+          else
+            echo "Tag $NEW_TAG already exists on remote"
+          fi
+          
       - name: Download Artifacts
         if: ${{ steps.release_check.outcome == 'success' }}
         uses: actions/download-artifact@v4
         with:
           path: ./downloaded-artifacts
           
-      - name: Prepare Artifacts for Upload
+      - name: Prepare Artifacts
         if: ${{ steps.release_check.outcome == 'success' }}
         run: |
-          # Create a new directory for release assets
           mkdir -p release-assets
-          
-          # Find and copy all artifacts to a flat directory structure
-          find ./downloaded-artifacts -type f -exec cp -v {} ./release-assets \;
-          
-          echo "Artifacts prepared for upload:"
+          find ./downloaded-artifacts -type f -exec cp {} ./release-assets \;
+          echo "Artifacts to upload:"
           ls -lh ./release-assets
           
-      - name: Set KSU Version for Final Release Name
+      - name: Set Final Release Name
         if: ${{ steps.release_check.outcome == 'success' }}
         run: |
-          KSU_VERSION_SUFFIX=""
+          # Your version suffix logic here
+          echo "RELEASE_NAME=${{ env.RELEASE_NAME }} & SUSFS v1.5.8" >> $GITHUB_ENV
           
-          if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            git clone https://github.com/KernelSU-Next/KernelSU-Next.git --depth 1 temp_ksu_repo || true
-            if [ -d "temp_ksu_repo" ]; then
-              cd temp_ksu_repo || exit 1
-              KSU_GIT_VERSION=$(git rev-list --count HEAD)
-              KSU_VERSION_SUFFIX="($((10000 + KSU_GIT_VERSION + 200)))"
-              cd ..
-              rm -rf temp_ksu_repo
-            else
-              echo "Warning: Could not clone KernelSU-Next repository for versioning." >&2
-            fi
-          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            git clone https://github.com/SukiSU-Ultra/SukiSU-Ultra.git --depth 1 temp_ksu_repo || true
-            if [ -d "temp_ksu_repo" ]; then
-              cd temp_ksu_repo || exit 1
-              KSU_GIT_VERSION=$(git rev-list --count HEAD)
-              KSU_VERSION_SUFFIX="($((10000 + KSU_GIT_VERSION + 606)))"
-              cd ..
-              rm -rf temp_ksu_repo
-            else
-              echo "Warning: Could not clone SukiSU-Ultra repository for versioning." >&2
-            fi
-          fi
-          
-          echo "RELEASE_NAME=${{ env.RELEASE_NAME }}${KSU_VERSION_SUFFIX} & SUSFS v1.5.8" >> $GITHUB_ENV
-          
-      - name: Create or Update GitHub Release
+      - name: Create or Update Release
         if: ${{ steps.release_check.outcome == 'success' }}
         run: |
-          # Check if release already exists
-          if gh release view "${{ env.NEW_TAG }}" >/dev/null 2>&1; then
-            echo "Release ${{ env.NEW_TAG }} already exists. Updating release notes and title."
-            
-            # Update existing release
-            gh release edit "${{ env.NEW_TAG }}" \
-              --title "${{ env.RELEASE_NAME }}" \
-              --notes "${{ env.FULL_RELEASE_NOTES }}" \
+          if gh release view "$NEW_TAG" >/dev/null 2>&1; then
+            echo "Updating existing release"
+            gh release edit "$NEW_TAG" \
+              --title "$RELEASE_NAME" \
+              --notes "$FULL_RELEASE_NOTES" \
               --prerelease
           else
-            echo "Creating new release ${{ env.NEW_TAG }}"
-            gh release create "${{ env.NEW_TAG }}" \
-              --title "${{ env.RELEASE_NAME }}" \
-              --notes "${{ env.FULL_RELEASE_NOTES }}" \
+            echo "Creating new release"
+            gh release create "$NEW_TAG" \
+              --title "$RELEASE_NAME" \
+              --notes "$FULL_RELEASE_NOTES" \
               --prerelease
           fi
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Dynamically Upload Release Assets
-        if: ${{ steps.release_check.outcome == 'success' }}
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: |
-          echo "Uploading release assets..."
-          
-          # Upload all files in the release-assets directory
-          for file in ./release-assets/*; do
-            echo "Uploading $file"
-            gh release upload "${{ env.NEW_TAG }}" "$file" || echo "Failed to upload $file"
-          done
-          
-          echo "Upload completed!"
-          
-      - name: Verify Uploaded Assets
-        if: ${{ steps.release_check.outcome == 'success' }}
-        run: |
-          echo "Uploaded assets:"
-          gh release view "${{ env.NEW_TAG }}" --json assets -q '.assets[].name'
+      - name: Upload Artifacts
+        if: ${{ steps.release_check.outcome极客江湖
