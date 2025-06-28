@@ -1,6 +1,5 @@
 name: Test Release
 
-# Fixed permissions - added actions:write for reusable workflows
 permissions:
   contents: write
   actions: write
@@ -73,7 +72,7 @@ jobs:
       kernelsu_variant: ${{ inputs.kernelsu_variant }}
 
   build-kernel-a12-5-10:
-    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to_build, 'a12-5.10')
+    if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a12') || contains(github.event.inputs.kernels_to极build, 'a12-5.10')
     uses: ./.github/workflows/kernel-a12-5.10.yml
     secrets: inherit
     with:
@@ -82,7 +81,7 @@ jobs:
       kernelsu_branch: ${{ inputs.kernelsu_branch }}
       version: ${{ inputs.version }}
       use_zram: ${{ inputs.use_zram }}
-      use_kpm: ${{ inputs.use_kpm }}
+      use_k极m: ${{ inputs.use_kpm }}
 
   build-kernel-a13-5-10:
     if: contains(github.event.inputs.kernels_to_build, 'all') || contains(github.event.inputs.kernels_to_build, 'a13-5.10') || contains(github.event.inputs.kernels_to_build, 'a13')
@@ -211,7 +210,7 @@ jobs:
             fi
           }
           
-          check_kernel_job "a12-5.10" "$SHOULD_RUN_A12_5_10" "$RESULT_A12_5_10"
+          check_kernel_job "a12-5.10" "$SHOULD_RUN_A12_5_10" "$极RESULT_A12_5_10"
           check_kernel_job "a13-5.10" "$SHOULD_RUN_A13_5_10" "$RESULT_A13_5_10"
           check_kernel_job "a13-5.15" "$SHOULD_RUN_A13_5_15" "$RESULT_A13_5_15"
           check_kernel_job "a14-5.15" "$SHOULD_RUN_A14_5_15" "$RESULT_A14_5_15"
@@ -229,7 +228,6 @@ jobs:
 
   trigger-release:
     runs-on: ubuntu-latest
-    # Reduced permissions for security - only what this job needs
     permissions:
       contents: write
     needs:
@@ -307,7 +305,7 @@ jobs:
           NEW_REVISION=$((MAX_REVISION + 1))
           NEW_TAG="$BASE_VERSION-r$NEW_REVISION"
           
-          echo "New tag generated: $NEW_TAG"
+          echo "New tag generated: $NEW极TAG"
           echo "NEW_TAG=${NEW_TAG}" >> $GITHUB_ENV
           
           # Create tag using GitHub API to avoid conflicts
@@ -530,7 +528,7 @@ jobs:
           
       - name: Create GitHub Release
         if: ${{ steps.release_check.outcome == 'success' }}
-        uses: actions/create-release@v2
+        uses: actions/create-release@v1  # Correct version
         with:
           tag_name: ${{ env.NEW_TAG }}
           prerelease: true
