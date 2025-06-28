@@ -1,8 +1,9 @@
 name: Test Release
 
+# Fixed permissions - added actions:write for reusable workflows
 permissions:
   contents: write
-  actions: read
+  actions: write
 
 concurrency:
   group: release-${{ github.ref }}
@@ -228,6 +229,7 @@ jobs:
 
   trigger-release:
     runs-on: ubuntu-latest
+    # Reduced permissions for security - only what this job needs
     permissions:
       contents: write
     needs:
