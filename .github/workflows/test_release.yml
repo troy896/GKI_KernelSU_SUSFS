@@ -235,7 +235,7 @@ jobs:
       - get_manager
     if: always()
     env:
-      REPO_OWNER: Kavi
+      REPO_OWNER: guruji-byte
       REPO_NAME: GKI_KernelSU_SUSFS
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       RELEASE_NAME: "GKI Kernel: ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }} ${{ inputs.kernelsu_variant }}"
