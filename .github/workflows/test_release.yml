@@ -256,7 +256,7 @@ jobs:
         <details>
         <summary>Notes:</summary>
         - -> In SUS SU Mode 2, it will show as disabled or incompatible, the reason is that non-kprobe hooks were used (when compiling the kernel), and non-kprobe hooks are no longer needed!
-        - -> In the latest version of susfs, flashing AK3 compressed package with Kernel Flasher will brick your device, try [Horizon Kernel Flasher]\(https://github.com/libxzr/HorizonKernelFlasher)!"
+        - -> In the latest version of susfs, flashing AK3 compressed package with Kernel Flasher will brick your device, try [Horizon Kernel Flasher]\(https://github.com/libxzr/HorizonKernelFlasher)!
         </details>
         
         Modules:
