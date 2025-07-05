@@ -4,8 +4,7 @@ on:
   workflow_dispatch:
     inputs:
       kernel_config:
-        description: 'Kernel config in format "android_version-kernel_version-sub_level-os_patch_level"'
-        Example: "android13-5.15-123-2023-07"
+        description: 'Kernel config in format "android_version-kernel_version-sub_level-os_patch_level" e.g: android13-5.15-123-2023-07'
         type: string
         required: true
       kernelsu_variant:
