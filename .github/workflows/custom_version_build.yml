@@ -45,6 +45,10 @@ on:
         description: 'Support OnePlus devices'
         type: boolean
         default: false
+      set_defbbr:
+        description: 'Set BBR as default congestion algorithm'
+        type: boolean
+        default: true
 
 jobs:
   parse-config:
@@ -58,23 +62,33 @@ jobs:
       - name: Parse Kernel Config
         id: parse
         run: |
+          # Split the input string into components
           IFS='-' read -r android_version kernel_version sub_level os_patch_level <<< "${{ github.event.inputs.kernel_config }}"
-          echo "android_version=$android_version" >> $GITHUB_OUTPUT
-          echo "kernel_version=$kernel_version" >> $GITHUB_OUTPUT
-          echo "sub_level=$sub_level" >> $GITHUB_OUTPUT
-          echo "os_patch_level=$os_patch_level" >> $GITHUB_OUTPUT
+          
+          # Validate we got exactly 4 components
+          if [ -z "$android_version" ] || [ -z "$kernel_version" ] || [ -z "$sub_level" ] || [ -z "$os_patch_level" ]; then
+            echo "❌ Invalid format! Expected: android_version-kernel_version-sub_level-os_patch_level"
+            echo "Example: android13-5.15-123-2023-07"
+            exit 1
+          fi
           
           echo "Parsed values:"
           echo "Android: $android_version"
           echo "Kernel: $kernel_version"
           echo "Sub Level: $sub_level"
           echo "OS Patch: $os_patch_level"
+          
+          echo "android_version=$android_version" >> $GITHUB_OUTPUT
+          echo "kernel_version=$kernel_version" >> $GITHUB_OUTPUT
+          echo "sub_level=$sub_level" >> $GITHUB_OUTPUT
+          echo "os_patch_level=$os_patch_level" >> $GITHUB_OUTPUT
 
   build:
     needs: parse-config
-    uses: ./.github/workflows/gki-kernel.yml
+    uses: ./.github/workflows/gki-kernel_build.yml
     with:
-      make_release: true
+      # Convert all boolean values to strings
+      make_release: "true"
       android_version: ${{ needs.parse-config.outputs.android_version }}
       kernel_version: ${{ needs.parse-config.outputs.kernel_version }}
       sub_level: ${{ needs.parse-config.outputs.sub_level }}
@@ -83,9 +97,10 @@ jobs:
       kernelsu_branch: ${{ github.event.inputs.kernelsu_branch }}
       revision: ${{ github.event.inputs.revision }}
       version: ${{ github.event.inputs.version }}
-      use_zram: ${{ github.event.inputs.use_zram }}
-      use_kpm: ${{ github.event.inputs.use_kpm }}
-      supp_op: ${{ github.event.inputs.supp_op }}
+      use_zram: ${{ github.event.inputs.use_zram && 'true' || 'false' }}
+      use_kpm: ${{ github.event.inputs.use_kpm && 'true' || 'false' }}
+      supp_op: ${{ github.event.inputs.supp_op && 'true' || 'false' }}
+      set_defbbr: ${{ github.event.inputs.set_defbbr && 'true' || 'false' }}
     secrets: inherit
 
   release:
@@ -97,14 +112,21 @@ jobs:
         with:
           name: ${{ github.event.inputs.kernelsu_variant }}_kernel-${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}-${{ needs.parse-config.outputs.sub_level }}
 
+      - name: List Downloaded Artifacts
+        run: |
+          echo "Downloaded artifacts:"
+          ls -la
+          echo "AnyKernel3 zips:"
+          ls -la *.zip || echo "No ZIP files found"
+          echo "Boot images:"
+          ls -la *.img || echo "No IMG files found"
+
       - name: Create Release
         id: create_release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}-${{ needs.parse-config.outputs.sub_level }}-${{ needs.parse-config.outputs.os_patch_level }}
-          release_name: "${{ needs.parse-config.outputs.android_version }} ${{ needs.parse-config.outputs.kernel_version }}.${{ needs.parse-config.outputs.sub_level }} (${{ needs.parse-config.outputs.os_patch_level }})"
+          name: "${{ needs.parse-config.outputs.android_version }} ${{ needs.parse-config.outputs.kernel_version }}.${{ needs.parse-config.outputs.sub_level }} (${{ needs.parse-config.outputs.os_patch_level }})"
           body: |
             ### Build Configuration
             - **Android Version**: ${{ needs.parse-config.outputs.android_version }}
@@ -112,25 +134,26 @@ jobs:
             - **Sub Level**: ${{ needs.parse-config.outputs.sub_level }}
             - **OS Patch Level**: ${{ needs.parse-config.outputs.os_patch_level }}
             - **KernelSU Variant**: ${{ github.event.inputs.kernelsu_variant }}
+            - **KernelSU Branch**: ${{ github.event.inputs.kernelsu_branch }}
+            - **Features**:
+              - SUSFS: Enabled
+              - KernelSU: ${{ github.event.inputs.kernelsu_variant }} (${{ github.event.inputs.kernelsu_branch }})
+              - ZRAM: ${{ github.event.inputs.use_zram }}
+              - KPM: ${{ github.event.inputs.use_kpm }}
+              - OnePlus Support: ${{ github.event.inputs.supp_op }}
+              - BBR Default: ${{ github.event.inputs.set_defbbr }}
           draft: false
           prerelease: false
-
-      - name: Upload ZIP Assets
-        uses: actions/upload-release-asset@v1
+          files: |
+            *AnyKernel3.zip
+            *.img
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./*.zip
-          asset_name: "${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}.${{ needs.parse-config.outputs.sub_level }}-${{ needs.parse-config.outputs.os_patch_level }}.zip"
-          asset_content_type: application/zip
 
-      - name: Upload Boot Images
-        uses: actions/upload-release-asset@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          upload_url: ${{ steps.create_release.outputs.upload_url }}
-          asset_path: ./*.img
-          asset_name: "${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}.${{ needs.parse-config.outputs.sub_level }}-${{ needs.parse-config.outputs.os_patch_level }}.img"
-          asset_content_type: application/octet-stream
+      - name: Verify Release Assets
+        run: |
+          echo "Release created with assets:"
+          gh release view ${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}-${{ needs.parse-config.outputs.sub_level }}-${{ needs.parse-config.outputs.os_patch_level }} \
+            --repo $GITHUB_REPOSITORY \
+            --json assets \
+            | jq '.assets[].name'
