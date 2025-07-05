@@ -5,9 +5,9 @@ on:
     inputs:
       kernel_config:
         description: 'Kernel config in format "android_version-kernel_version-sub_level-os_patch_level"'
+        Example: "android13-5.15-123-2023-07"
         type: string
         required: true
-        example: "android13-5.15-123-2023-07"
       kernelsu_variant:
         description: 'KernelSU Variant'
         type: choice
