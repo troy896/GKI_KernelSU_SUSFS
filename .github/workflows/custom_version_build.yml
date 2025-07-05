@@ -65,7 +65,7 @@ jobs:
           # Split the input string into components
           IFS='-' read -r android_version kernel_version sub_level os_patch_level <<< "${{ github.event.inputs.kernel_config }}"
           
-          # Validate we got exactly 4 components
+          # Verify we got exactly 4 components
           if [ -z "$android_version" ] || [ -z "$kernel_version" ] || [ -z "$sub_level" ] || [ -z "$os_patch_level" ]; then
             echo "❌ Invalid format! Expected: android_version-kernel_version-sub_level-os_patch_level"
             echo "Example: android13-5.15-123-2023-07"
@@ -87,7 +87,6 @@ jobs:
     needs: parse-config
     uses: ./.github/workflows/gki-kernel.yml
     with:
-      # Convert all boolean values to strings
       make_release: "true"
       android_version: ${{ needs.parse-config.outputs.android_version }}
       kernel_version: ${{ needs.parse-config.outputs.kernel_version }}
@@ -112,12 +111,12 @@ jobs:
         with:
           name: ${{ github.event.inputs.kernelsu_variant }}_kernel-${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}-${{ needs.parse-config.outputs.sub_level }}
 
-      - name: List Downloaded Artifacts
+      - name: List Artifacts for Debugging
         run: |
           echo "Downloaded artifacts:"
           ls -la
           echo "AnyKernel3 zips:"
-          ls -la *.zip || echo "No ZIP files found"
+          ls -la *AnyKernel3*.zip || echo "No ZIP files found"
           echo "Boot images:"
           ls -la *.img || echo "No IMG files found"
 
@@ -136,8 +135,6 @@ jobs:
             - **KernelSU Variant**: ${{ github.event.inputs.kernelsu_variant }}
             - **KernelSU Branch**: ${{ github.event.inputs.kernelsu_branch }}
             - **Features**:
-              - SUSFS: Enabled
-              - KernelSU: ${{ github.event.inputs.kernelsu_variant }} (${{ github.event.inputs.kernelsu_branch }})
               - ZRAM: ${{ github.event.inputs.use_zram }}
               - KPM: ${{ github.event.inputs.use_kpm }}
               - OnePlus Support: ${{ github.event.inputs.supp_op }}
@@ -145,7 +142,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
-            *AnyKernel3.zip
+            *AnyKernel3*.zip
             *.img
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -153,7 +150,6 @@ jobs:
       - name: Verify Release Assets
         run: |
           echo "Release created with assets:"
-          gh release view ${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}-${{ needs.parse-config.outputs.sub_level }}-${{ needs.parse-config.outputs.os_patch_level }} \
-            --repo $GITHUB_REPOSITORY \
-            --json assets \
-            | jq '.assets[].name'
+          gh release view $RELEASE_TAG --repo $GITHUB_REPOSITORY --json assets | jq '.assets[].name'
+        env:
+          RELEASE_TAG: ${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}-${{ needs.parse-config.outputs.sub_level }}-${{ needs.parse-config.outputs.os_patch_level }}
