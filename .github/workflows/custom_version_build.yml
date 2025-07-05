@@ -1,0 +1,137 @@
+name: Release GKI Kernel
+
+on:
+  workflow_dispatch:
+    inputs:
+      kernel_config:
+        description: 'Kernel config in format "android_version-kernel_version-sub_level-os_patch_level"'
+        type: string
+        required: true
+        example: "android13-5.15-123-2023-07"
+      kernelsu_variant:
+        description: 'KernelSU Variant'
+        type: choice
+        options:
+          - Official
+          - Next
+          - MKSU
+          - SukiSU
+        required: true
+        default: 'Official'
+      kernelsu_branch:
+        description: 'KernelSU Branch'
+        type: choice
+        options:
+          - Stable(标准)
+          - Dev(开发)
+        required: true
+        default: 'Stable(标准)'
+      revision:
+        description: 'Revision (for android12 only)'
+        type: string
+        default: ''
+      version:
+        description: 'Custom version string'
+        type: string
+        default: ''
+      use_zram:
+        description: 'Enable ZRAM optimizations'
+        type: boolean
+        default: true
+      use_kpm:
+        description: 'Enable Kernel Patch Module'
+        type: boolean
+        default: true
+      supp_op:
+        description: 'Support OnePlus devices'
+        type: boolean
+        default: false
+
+jobs:
+  parse-config:
+    runs-on: ubuntu-latest
+    outputs:
+      android_version: ${{ steps.parse.outputs.android_version }}
+      kernel_version: ${{ steps.parse.outputs.kernel_version }}
+      sub_level: ${{ steps.parse.outputs.sub_level }}
+      os_patch_level: ${{ steps.parse.outputs.os_patch_level }}
+    steps:
+      - name: Parse Kernel Config
+        id: parse
+        run: |
+          IFS='-' read -r android_version kernel_version sub_level os_patch_level <<< "${{ github.event.inputs.kernel_config }}"
+          echo "android_version=$android_version" >> $GITHUB_OUTPUT
+          echo "kernel_version=$kernel_version" >> $GITHUB_OUTPUT
+          echo "sub_level=$sub_level" >> $GITHUB_OUTPUT
+          echo "os_patch_level=$os_patch_level" >> $GITHUB_OUTPUT
+          
+          echo "Parsed values:"
+          echo "Android: $android_version"
+          echo "Kernel: $kernel_version"
+          echo "Sub Level: $sub_level"
+          echo "OS Patch: $os_patch_level"
+
+  build:
+    needs: parse-config
+    uses: ./.github/workflows/gki_build.yml
+    with:
+      make_release: true
+      android_version: ${{ needs.parse-config.outputs.android_version }}
+      kernel_version: ${{ needs.parse-config.outputs.kernel_version }}
+      sub_level: ${{ needs.parse-config.outputs.sub_level }}
+      os_patch_level: ${{ needs.parse-config.outputs.os_patch_level }}
+      kernelsu_variant: ${{ github.event.inputs.kernelsu_variant }}
+      kernelsu_branch: ${{ github.event.inputs.kernelsu_branch }}
+      revision: ${{ github.event.inputs.revision }}
+      version: ${{ github.event.inputs.version }}
+      use_zram: ${{ github.event.inputs.use_zram }}
+      use_kpm: ${{ github.event.inputs.use_kpm }}
+      supp_op: ${{ github.event.inputs.supp_op }}
+    secrets: inherit
+
+  release:
+    needs: [parse-config, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download Artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ github.event.inputs.kernelsu_variant }}_kernel-${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}-${{ needs.parse-config.outputs.sub_level }}
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}-${{ needs.parse-config.outputs.sub_level }}-${{ needs.parse-config.outputs.os_patch_level }}
+          release_name: "${{ needs.parse-config.outputs.android_version }} ${{ needs.parse-config.outputs.kernel_version }}.${{ needs.parse-config.outputs.sub_level }} (${{ needs.parse-config.outputs.os_patch_level }})"
+          body: |
+            ### Build Configuration
+            - **Android Version**: ${{ needs.parse-config.outputs.android_version }}
+            - **Kernel Version**: ${{ needs.parse-config.outputs.kernel_version }}
+            - **Sub Level**: ${{ needs.parse-config.outputs.sub_level }}
+            - **OS Patch Level**: ${{ needs.parse-config.outputs.os_patch_level }}
+            - **KernelSU Variant**: ${{ github.event.inputs.kernelsu_variant }}
+          draft: false
+          prerelease: false
+
+      - name: Upload ZIP Assets
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./*.zip
+          asset_name: "${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}.${{ needs.parse-config.outputs.sub_level }}-${{ needs.parse-config.outputs.os_patch_level }}.zip"
+          asset_content_type: application/zip
+
+      - name: Upload Boot Images
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./*.img
+          asset_name: "${{ needs.parse-config.outputs.android_version }}-${{ needs.parse-config.outputs.kernel_version }}.${{ needs.parse-config.outputs.sub_level }}-${{ needs.parse-config.outputs.os_patch_level }}.img"
+          asset_content_type: application/octet-stream
