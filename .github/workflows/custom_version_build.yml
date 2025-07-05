@@ -72,7 +72,7 @@ jobs:
 
   build:
     needs: parse-config
-    uses: ./.github/workflows/gki_build.yml
+    uses: ./.github/workflows/gki-kernel.yml
     with:
       make_release: true
       android_version: ${{ needs.parse-config.outputs.android_version }}
