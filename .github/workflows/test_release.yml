@@ -490,9 +490,11 @@ jobs:
                   fi
                   ;;
               esac
-            done
-            KERNELS_TO_FETCH_SUSFS=( $(printf "%s\n" "${KERNELS_TO_FETCH_SUSFS[@]}" | sort -u) )
+            done   
           fi
+          
+          mapfile -t SORTED_KERNELS < <(printf '%s\n' "${KERNELS_TO_FETCH_SUSFS[@]}" | sort)
+          KERNELS_TO_FETCH_SUSFS=("${SORTED_KERNELS[@]}")
           
           for kernel_id in "${KERNELS_TO_FETCH_SUSFS[@]}"; do
             susfs_branch_name="${BRANCH_MAP[$kernel_id]}"
