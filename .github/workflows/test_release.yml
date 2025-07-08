@@ -240,9 +240,10 @@ jobs:
       GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       RELEASE_NAME: "GKI Kernel: ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }} ${{ inputs.kernelsu_variant }}"
       INITIAL_RELEASE_NOTES: |
-        This release includes **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU' || '' }}${{ inputs.kernelsu_variant }}, please note the KSU version here**, SUSFS v1.5.9, LZ4KD
+        This release includes **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-Next' || inputs.kernelsu_variant == 'Official' && 'KernelSU' || inputs.kernelsu_variant }}**
+  
         Features:
-        -> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }}${{ inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}
+        -> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-Next' || inputs.kernelsu_variant == 'Official' && 'KernelSU' || inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}
         -> SUSFS ඞ v1.5.9
         -> Manual Syscall Hooks for better hiding
         -> Magic Mount Support
@@ -252,7 +253,7 @@ jobs:
         -> BBR Support
         ${{ inputs.use_kpm && '-> KPM Support' || '' }}
         -> **LZ4KD&ONEPLUS_LZ4K** ${{ inputs.use_zram && 'supported' || 'not supported' }}
-        
+         
         <details>
         <summary>Notes:</summary>
         - -> In SUS SU Mode 2, it will show as disabled or incompatible, the reason is that non-kprobe hooks were used (when compiling the kernel), and non-kprobe hooks are no longer needed!
