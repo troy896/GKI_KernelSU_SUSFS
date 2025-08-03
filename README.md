@@ -7,7 +7,7 @@
 > Recent updates: 1. OnePlus 8ELITE processor can use 6.6 kernel (untested); 2. Fixed compilation errors for these GKI versions — [5.10.(66, 81, 101), 5.15.(74, 94, 104)]
 
 ### Download  
-You can [download your resources here](https://github.com/zzh20188/GKI_KernelSU_SUSFS/releases)  
+You can [download your resources here](https://github.com/guruji-byte/GKI_KernelSU_SUSFS/releases)  
 1. About Anykernel3.zip: download and use!  
    - Then use a flashing tool, e.g. [HorizonKernelFlasher](https://github.com/libxzr/HorizonKernelFlasher/releases) to flash the kernel  
 2. About boot.img: download the one matching your kernel format (uncompressed, gz, lz4), [refer here](https://kernelsu.org/zh_CN/guide/installation.html#install-by-kernelsu-boot-image) **to find the suitable boot.img**  
