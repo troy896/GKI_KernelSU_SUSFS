@@ -86,5 +86,4 @@ Similarly, the [Release](https://github.com/zzh20188/GKI_KernelSU_SUSFS/releases
 > - 📅 Kernel build time: refer to the comments **around line 490** in [gki-kernel.yml](.github/workflows/gki-kernel.yml)
 
 ### More  
-You can share your suggestions... I’ll try my best!
-"""
+You can share your suggestions... I’ll try my best!"
