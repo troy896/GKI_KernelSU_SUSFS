@@ -88,8 +88,3 @@ Similarly, the [Release](https://github.com/zzh20188/GKI_KernelSU_SUSFS/releases
 ### More  
 You can share your suggestions... I’ll try my best!
 """
-
-with open("/mnt/data/README_EN.md", "w") as f:
-    f.write(translated_readme)
-
-"/mnt/data/README_EN.md"
