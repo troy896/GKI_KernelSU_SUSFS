@@ -10,7 +10,7 @@
 You can [download your resources here](https://github.com/guruji-byte/GKI_KernelSU_SUSFS/releases)  
 1. About Anykernel3.zip: download and use!  
    - Then use a flashing tool, e.g. [HorizonKernelFlasher](https://github.com/libxzr/HorizonKernelFlasher/releases) to flash the kernel  
-2. About boot.img: download the one matching your kernel format (uncompressed, gz, lz4), [refer here](https://kernelsu.org/zh_CN/guide/installation.html#install-by-kernelsu-boot-image) **to find the suitable boot.img**  
+2. About boot.img: download the one matching your kernel format (uncompressed, gz, lz4), [refer here](https://kernelsu.org/guide/installation.html#install-by-kernelsu-boot-image) **to find the suitable boot.img**  
    - Flash using [FASTBOOT](https://magiskcn.com/), or use a flashing tool to flash it to the boot partition of the ROOT slot (e.g. Aiwanji, Kernelflasher)
 
 ### Support  
