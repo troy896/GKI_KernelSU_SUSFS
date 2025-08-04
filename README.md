@@ -10,13 +10,13 @@
 You can [download your resources here](https://github.com/guruji-byte/GKI_KernelSU_SUSFS/releases)  
 1. About Anykernel3.zip: download and use!  
    - Then use a flashing tool, e.g. [HorizonKernelFlasher](https://github.com/libxzr/HorizonKernelFlasher/releases) to flash the kernel  
-2. About boot.img: download the one matching your kernel format (uncompressed, gz, lz4), [refer here](https://kernelsu.org/guide/installation.html#install-by-kernelsu-boot-image) **to find the suitable boot.img**  
+2. About boot.img: download the one matching your kernel format (uncompressed, gz, lz4), [refer here](https://kernelsu.org/guide/installation.html#install-with-boot-img-provided-by-kernelsu) **to find the suitable boot.img**  
    - Flash using [FASTBOOT](https://magiskcn.com/), or use a flashing tool to flash it to the boot partition of the ROOT slot (e.g. Aiwanji, Kernelflasher)
 
 ### Support  
 | Feature | Description |
 | --- | --- |
-| [KernelSU](https://kernelsu.org/zh_CN/) | Includes **Official, MKSU, SUKISU, NEXT** |
+| [KernelSU](https://kernelsu.org/) | Includes **Official, MKSU, SUKISU, NEXT** |
 | [SUSFS4](https://gitlab.com/simonpunk/susfs4ksu) | Kernel-level patch to assist KSU hiding |
 | [BBR](https://blog.thinkin.top/archives/ke-pu-bbrdao-di-shi-shi-me) | TCP congestion control algorithm, makes network faster? |
 | [Wireguard](https://zh.wikipedia.org/wiki/WireGuard) | See wiki link on the left |
