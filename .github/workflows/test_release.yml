@@ -354,7 +354,7 @@ jobs:
             
           else
             echo "Using default naming for variant: ${{ inputs.kernelsu_variant }}"
-            echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS v1.5.9\"" >> $GITHUB_ENV
+            echo "RELEASE_NAME=\"GKI Kernel: ${{ inputs.kernelsu_variant }} & SUSFS v1.5.11\"" >> $GITHUB_ENV
           fi
           
       - name: Fetch KSU and SUSFS Commit Info
