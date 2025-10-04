@@ -244,7 +244,7 @@ jobs:
   
         Features:
         -> ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-Next' || inputs.kernelsu_variant == 'Official' && 'KernelSU' || inputs.kernelsu_variant }}-${{ inputs.kernelsu_branch }}
-        -> SUSFS ඞ v1.5.9
+        -> SUSFS ඞ v1.5.11
         -> Manual Syscall Hooks for better hiding
         -> Magic Mount Support
         -> Simple hiding for LineageOS detection
@@ -287,7 +287,7 @@ jobs:
         run: |
           set -e
 
-          BASE_VERSION="v1.5.9"
+          BASE_VERSION="v1.5.11"
           
           # Fetch all existing tags using git ls-remote
           EXISTING_TAGS=$(git ls-remote --tags https://github.com/$REPO_OWNER/$REPO_NAME.git | awk '{print $2}' | sed 's/refs\/tags\///' || true)
