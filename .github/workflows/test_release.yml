@@ -339,7 +339,7 @@ jobs:
             echo "Next version: $KSU_VERSION"
             cd ..
             rm -rf ksu-next-tmp
-            echo "RELEASE_NAME=\"GKI Kernel: KernelSU-Next ($KSU_VERSION) & SUSFS v1.5.9\"" >> $GITHUB_ENV
+            echo "RELEASE_NAME=\"GKI Kernel: KernelSU-Next ($KSU_VERSION) & SUSFS v1.5.11\"" >> $GITHUB_ENV
             
           elif [ "${{ inputs.kernelsu_variant }}" = "SukiSU" ]; then
             echo "Processing SukiSU variant"
@@ -350,7 +350,7 @@ jobs:
             echo "SukiSU version: $KSU_VERSION"
             cd ..
             rm -rf suki-tmp
-            echo "RELEASE_NAME=\"GKI Kernel: SukiSU ($KSU_VERSION) & SUSFS v1.5.9\"" >> $GITHUB_ENV
+            echo "RELEASE_NAME=\"GKI Kernel: SukiSU ($KSU_VERSION) & SUSFS v1.5.11\"" >> $GITHUB_ENV
             
           else
             echo "Using default naming for variant: ${{ inputs.kernelsu_variant }}"
