@@ -55,7 +55,7 @@ on:
         default: false
 jobs:
   build-kernel-kernelsu-susfs:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_NOHASHDIR: "true"
