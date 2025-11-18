@@ -55,25 +55,26 @@ on:
         default: false
 jobs:
   build-kernel-kernelsu-susfs:
-    runs-on: self-hosted
+    runs-on: ubuntu-latest
     env:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_NOHASHDIR: "true"
       CCACHE_HARDLINK: "true"
 
     steps:
-     # - name: Maximize Build Space
-     #   uses: AdityaGarg8/remove-unwanted-software@v5
-     #   with:
-     #     remove-dotnet: 'true'          # Frees ~2 GB
-     #     remove-android: 'true'         # Frees ~9 GB
-     #     remove-haskell: 'true'         # Frees ~5.2 GB
-     #     remove-codeql: 'true'          # Frees ~5.4 GB
-     #     remove-docker-images: 'true'   # Frees ~3.2 GB
-     #     remove-large-packages: 'true'  # Frees ~3.1 GB
-     #     remove-swapfile: 'true'        # Frees ~4 GB
-     #     remove-cached-tools: 'false'   # Avoid unless confirmed safe
-     #     verbose: 'true'                # Enable detailed logging    
+      - name: Maximize Build Space
+        uses: AdityaGarg8/remove-unwanted-software@v5
+        with:
+          remove-dotnet: 'true'          # Frees ~2 GB
+          remove-android: 'true'         # Frees ~9 GB
+          remove-haskell: 'true'         # Frees ~5.2 GB
+          remove-codeql: 'true'          # Frees ~5.4 GB
+          remove-docker-images: 'true'   # Frees ~3.2 GB
+          remove-large-packages: 'true'  # Frees ~3.1 GB
+          remove-swapfile: 'true'        # Frees ~4 GB
+          remove-cached-tools: 'false'   # Avoid unless confirmed safe
+          verbose: 'true'                # Enable detailed logging
+          
       - name: 设定 CONFIG 环境变量
         run: |
           # Set CONFIG dynamically based on inputs values
@@ -143,22 +144,22 @@ jobs:
           chmod a+rx ./git-repo/repo
           echo "REPO=$GITHUB_WORKSPACE/./git-repo/repo" >> $GITHUB_ENV
 
-   #   - name: 克隆 AnyKernel3 和其他依赖项
-   #     run: |
-   #       echo "Cloning AnyKernel3 and other dependencies..."
+      - name: 克隆 AnyKernel3 和其他依赖项
+        run: |
+          echo "Cloning AnyKernel3 and other dependencies..."
 
-   #       ANYKERNEL_BRANCH="gki-2.0"
-   #       SUSFS_BRANCH="gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}"
+          ANYKERNEL_BRANCH="gki-2.0"
+          SUSFS_BRANCH="gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}"
 
           # Debug print the branches
-   #       echo "Using branch for SUSFS: $SUSFS_BRANCH"
+          echo "Using branch for SUSFS: $SUSFS_BRANCH"
 
           # Clone repositories using the branch names
-   #       git clone https://github.com/WildPlusKernel/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
-   #       git clone https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH"
-   #       git clone https://github.com/Tools-cx-app/kernel_patches.git
+          git clone https://github.com/WildPlusKernel/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
+          git clone https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH"
+          git clone https://github.com/Tools-cx-app/kernel_patches.git
           # Sukisu的补丁仓库
-   #       git clone https://github.com/ShirkNeko/SukiSU_patch.git
+          git clone https://github.com/ShirkNeko/SukiSU_patch.git
           
       - name: 设置 CONFIG 环境变量
         run: |
@@ -623,7 +624,7 @@ jobs:
             if [ -f "build/build.sh" ]; then
               LTO=thin BUILD_CONFIG=common/build.config.gki.aarch64 build/build.sh CC="/usr/bin/ccache clang" || exit 1
             else
-              tools/bazel build --disk_cache=/home/patrick/actions-runner/_work/.cache/bazel --config=fast --lto=thin //common:kernel_aarch64_dist || exit 1
+              tools/bazel build --disk_cache=/home/runner/.cache/bazel --config=fast --lto=thin //common:kernel_aarch64_dist || exit 1
             fi
             ccache --show-stats
             
