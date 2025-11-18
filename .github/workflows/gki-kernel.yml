@@ -143,22 +143,22 @@ jobs:
           chmod a+rx ./git-repo/repo
           echo "REPO=$GITHUB_WORKSPACE/./git-repo/repo" >> $GITHUB_ENV
 
-      - name: 克隆 AnyKernel3 和其他依赖项
-        run: |
-          echo "Cloning AnyKernel3 and other dependencies..."
+   #   - name: 克隆 AnyKernel3 和其他依赖项
+   #     run: |
+   #       echo "Cloning AnyKernel3 and other dependencies..."
 
-          ANYKERNEL_BRANCH="gki-2.0"
-          SUSFS_BRANCH="gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}"
+   #       ANYKERNEL_BRANCH="gki-2.0"
+   #       SUSFS_BRANCH="gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}"
 
           # Debug print the branches
-          echo "Using branch for SUSFS: $SUSFS_BRANCH"
+   #       echo "Using branch for SUSFS: $SUSFS_BRANCH"
 
           # Clone repositories using the branch names
-          git clone https://github.com/WildPlusKernel/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
-          git clone https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH"
-          git clone https://github.com/Tools-cx-app/kernel_patches.git
+   #       git clone https://github.com/WildPlusKernel/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
+   #       git clone https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH"
+   #       git clone https://github.com/Tools-cx-app/kernel_patches.git
           # Sukisu的补丁仓库
-          git clone https://github.com/ShirkNeko/SukiSU_patch.git
+   #       git clone https://github.com/ShirkNeko/SukiSU_patch.git
           
       - name: 设置 CONFIG 环境变量
         run: |
