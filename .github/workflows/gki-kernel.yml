@@ -156,7 +156,10 @@ jobs:
 
           # Clone repositories using the branch names
           git clone https://github.com/WildPlusKernel/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
-          git clone https://github.com/ShirkNeko/susfs4ksu.git -b "7ff46caa844e67bbb1d0556d617635f7bd144edf"
+          git clone https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH"
+          cd susfs4ksu
+          git checkout 7ff46ca
+          cd ..
           git clone https://github.com/Tools-cx-app/kernel_patches.git
           # Sukisu的补丁仓库
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
