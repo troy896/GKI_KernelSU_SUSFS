@@ -156,7 +156,7 @@ jobs:
 
           # Clone repositories using the branch names
           git clone https://github.com/WildPlusKernel/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
-          git clone https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH"
+          git clone https://github.com/ShirkNeko/susfs4ksu.git -b "7ff46caa844e67bbb1d0556d617635f7bd144edf"
           git clone https://github.com/Tools-cx-app/kernel_patches.git
           # Sukisu的补丁仓库
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
@@ -230,7 +230,7 @@ jobs:
               case "$variant_input" in
                 "Official" | "MKSU") echo "BRANCH=-s main" >> $GITHUB_ENV ;;
                 "Next")              echo "BRANCH=-s next-susfs-dev" >> $GITHUB_ENV ;;
-                "SukiSU")           echo "BRANCH=-s 44eed59c46ef2928299d0828a87cce9f5f0d8c6b" >> $GITHUB_ENV ;;
+                "SukiSU")           echo "BRANCH=-s 9856539f1f41f3023a482783955318cf179d5851" >> $GITHUB_ENV ;;
                 *) 
                   echo "错误：未定义开发分支的变体 '$variant_input'" >&2
                   exit 1
