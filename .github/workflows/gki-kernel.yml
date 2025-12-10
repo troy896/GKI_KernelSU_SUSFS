@@ -224,7 +224,7 @@ jobs:
           
           case "$branch_input" in
             "Stable(标准)")
-              echo "BRANCH=-s 5bb3ce0d6a0270941423777ee7b8b003146f75ac" >> $GITHUB_ENV
+              echo "BRANCH=-s builtin" >> $GITHUB_ENV
               ;;
             "Dev(开发)")
               case "$variant_input" in
