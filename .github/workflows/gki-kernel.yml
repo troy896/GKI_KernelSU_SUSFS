@@ -93,7 +93,7 @@ jobs:
         run: |
           mkdir -p ~/.cache/bazel
           ccache --version
-          ccache --max-size=3G
+          ccache --max-size=8G
           ccache --set-config=compression=true
           echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
 
@@ -156,7 +156,7 @@ jobs:
 
           # Clone repositories using the branch names
           git clone https://github.com/WildKernels/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
-          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH"
+          git clone https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH"
           git clone https://github.com/Tools-cx-app/kernel_patches.git
           # Sukisu的补丁仓库
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
