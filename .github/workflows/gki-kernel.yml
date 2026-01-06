@@ -427,7 +427,7 @@ jobs:
           else
             cat "../../Action-Build/patches/clear_page_16bytes_align.patch" | sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' | patch -p1 -F3 --forward
             echo "Patching unicode!"
-            patch -p1 --forward < "../../Action-Build/patches/unicode_bypass_fix_all.patch"
+            patch -p1 --forward < "../../Action-Build/patches/unicode-bypass_fix_all.patch"
           fi
           
       - name: 升级LZ4至1.10.0
