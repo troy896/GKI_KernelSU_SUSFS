@@ -33,6 +33,7 @@ on:
         - Next
         - MKSU
         - SukiSU
+        - YukiSU
         default: SukiSU
       kernelsu_branch:
         description: "Select KSU branch"
@@ -47,6 +48,7 @@ on:
         description: 'Custom version name (e.g., characters after 5.10.198 / leave blank to use default version number)'
         required: false
         type: string
+        default: '-CaSukiSu'
       use_zram:
         description: 'Enable more ZRAM algorithms?'
         required: true
@@ -56,9 +58,9 @@ on:
         description: 'Enable KPM functionality?'
         required: true
         type: boolean
-        default: true
+        default: false
       BBG:
-        description: "是否启用内核层面阻止对关键分区/设备节点的非法写入(LSM)？"
+        description: "Enable kernel-level blocking of illegal writes to critical partitions/device nodes (LSM)?"
         required: true
         type: boolean
         default: false
