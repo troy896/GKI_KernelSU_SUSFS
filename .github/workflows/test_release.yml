@@ -40,10 +40,10 @@ on:
         required: true
         type: choice
         options:
-        - Stable(标准)
-        - Dev(开发)
-        - Other(其他/指定)
-        default: Stable(标准)
+        - Stable (standard)
+        - Dev (development)
+        - Other (other/specified)
+        default: Stable (standard)
       version:
         description: 'Custom version name (e.g., characters after 5.10.198 / leave blank to use default version number)'
         required: false
