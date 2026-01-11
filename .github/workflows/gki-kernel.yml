@@ -429,7 +429,6 @@ jobs:
           cp "../../kernel_patches/common/clear_page_16bytes_align.patch" ./
           sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' clear_page_16bytes_align.patch > clear_page_16bytes_align__pi.patch
           patch -p1 -F3 --forward < clear_page_16bytes_align__pi.patch
-          patch -p1 --forward < "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" || true
   
       - name: Application performance optimization patch
         run: |
