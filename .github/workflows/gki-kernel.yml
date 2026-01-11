@@ -182,6 +182,7 @@ jobs:
           # Next Fix Patch
           git clone https://github.com/zzh20188/GKI_KernelSU_SUSFS.git zzh_patch
           git clone https://github.com/Numbersf/Action-Build.git
+          git clone https://github.com/Anatdx/HymoFS.git -b "android14_6.1"
           
       - name: Sets the CONFIG environment variable
         run: |
@@ -224,20 +225,6 @@ jobs:
             curl -LSs https://github.com/zzh20188/GKI_KernelSU_SUSFS/raw/refs/heads/legacy/fix_5.15.legacy -o fix_5.15.legacy.patch
             patch -p1 < fix_5.15.legacy.patch
           fi
-
-      - name: Enable GKI to function properly on the OnePlus 8E platform
-        if: ${{ inputs.supp_op }}
-        run: |
-          echo 'Switch to driver directory'
-          cd "$CONFIG/common/drivers/"
-          echo 'Current directory $(pwd), Download support patch'
-          curl -LSs "https://github.com/zzh20188/GKI_KernelSU_SUSFS/raw/refs/heads/dev/hmbird_patch.c" -o hmbird_patch.c
-          if [ ! -f hmbird_patch.c ]; then
-            echo "hmbird_patch.c download failed"
-          fi
-          echo 'Patch added to build'
-          echo "obj-y += hmbird_patch.o" >> Makefile
-          tail -n 3 Makefile
       
       - name: Determines the branch of KernelSU
         run: |
@@ -372,6 +359,26 @@ jobs:
           else
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
           fi
+
+      - name: Enable Hymofs
+        if: ${{ inputs.supp_op }}
+        run: |
+          echo "Changed to configuration directory: $CONFIG..."
+          cd "$CONFIG"
+
+          echo "Applying HymoFS patches..."
+
+          # Copy HymoFS patches
+          cp ../HymoFS/src_modified_with_susfs/fs/hymofs.c ./common/fs
+          cp ../HymoFS/src_modified_with_susfs/fs/hymofs_ioctl.h ./common/fs/
+          cp ../HymoFS/src_modified_with_susfs/fs/hymofs.h ./common/fs/
+          cp ../HymoFS/patch/hymofs_with_susfs.patch ./common/
+          
+          cd ./common
+
+          patch -p1 --fuzz=3 --forward < hymofs_with_susfs.patch || true
+          echo "CONFIG_KSU_HYMOFS=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_HYMOFS_LSMBPS=y" >> ./arch/arm64/configs/gki_defconfig
           
       - name: Some fixes/patches
         run: |
@@ -414,7 +421,8 @@ jobs:
           cp "../../kernel_patches/common/clear_page_16bytes_align.patch" ./
           sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' clear_page_16bytes_align.patch > clear_page_16bytes_align__pi.patch
           patch -p1 -F3 --forward < clear_page_16bytes_align__pi.patch
-  
+          patch -p1 --forward < "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" || true
+          
       - name: Application performance optimization patch
         run: |
           echo "=== Application performance optimization patch==="
