@@ -429,6 +429,7 @@ jobs:
           cp "../../kernel_patches/common/clear_page_16bytes_align.patch" ./
           sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' clear_page_16bytes_align.patch > clear_page_16bytes_align__pi.patch
           patch -p1 -F3 --forward < clear_page_16bytes_align__pi.patch
+          patch -p1 --forward < "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" || true
   
       - name: Application performance optimization patch
         run: |
@@ -562,6 +563,7 @@ jobs:
             echo "CONFIG_KPM=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_NOMOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
           elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
             echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSu" ]; then
