@@ -59,6 +59,11 @@ on:
         required: true
         type: boolean
         default: false
+      use_hymofs:
+        description: 'Enable HymoFS functionality?'
+        required: true
+        type: boolean
+        default: false
       BBG:
         description: "Enable kernel-level blocking of illegal writes to critical partitions/device nodes (LSM)?"
         required: true
