@@ -45,7 +45,7 @@ on:
         required: true
         type: boolean
         default: false
-      supp_op:
+      use_hymofs:
         required: true
         type: boolean
         default: false
@@ -361,7 +361,7 @@ jobs:
           fi
 
       - name: Enable Hymofs
-        if: ${{ inputs.supp_op }}
+        if: ${{ inputs.use_hymofs }}
         run: |
           echo "Changed to configuration directory: $CONFIG..."
           cd "$CONFIG"
