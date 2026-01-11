@@ -102,5 +102,5 @@ jobs:
       version: ${{ inputs.version || '' }}
       use_zram: ${{ inputs.use_zram }}
       use_kpm: ${{ inputs.use_kpm }}
-      supp_op: ${{ inputs.supp_op || false }}
+      use_hymofs: ${{ inputs.use_hymofs }}
       BBG: ${{ inputs.BBG || false }}
