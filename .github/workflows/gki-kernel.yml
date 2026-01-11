@@ -171,7 +171,7 @@ jobs:
 
           # Clone repositories using the branch names
           git clone https://github.com/WildKernels/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
-          if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
+          if [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             git clone https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH"
           else
             git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH"
@@ -408,21 +408,6 @@ jobs:
             fi
           fi
   
-      - name: Apply the new HOOKS patch
-        run: |
-          echo "Changed to configuration directory: $CONFIG..."
-          cd "$CONFIG/common"
-
-          if [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
-            echo "Applying hooks for KernelSU-Next..."
-            cp ../../kernel_patches/next/scope_min_manual_hooks_v1.4.patch ./
-            patch -p1 -F 3 < scope_min_manual_hooks_v1.4.patch
-          elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "Applying hooks for SukiSU..."
-            wget https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/experimental/patches/nomount-susfs-kernel-5.15-6.6.patch
-            patch -p1 -F 3 < nomount-susfs-kernel-5.15-6.6.patch
-          fi
-          
       - name: Apply UNICODE_BYPASS and MEMORY_OPT
         run: |
           cd "$CONFIG/common"
@@ -513,26 +498,6 @@ jobs:
               echo "文件不存在: fs/f2fs/Makefile"
           fi
           
-      - name: Apply Module Check Bypass
-        run: |
-          if [[ "${{ inputs.kernel_version }}" == "6.1" || "${{ inputs.kernel_version }}" == "6.6" || "${{ inputs.kernel_version }}" == "6.12" ]]; then
-          TARGET_FILE="$CONFIG/common/kernel/module/version.c"
-          else
-          TARGET_FILE="$CONFIG/common/kernel/module.c"
-          fi
-
-          echo "Applying bypass to $TARGET_FILE"
-          sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
-
-          # Verify the bypass
-          if grep -A 5 "bad_version:" "$TARGET_FILE" | grep -q "return 1;"; then
-          echo "SUCCESS: Module check bypass verified in $TARGET_FILE"
-          else
-          echo "FAILED: Module check bypass not found in $TARGET_FILE"
-          grep -A 5 "bad_version:" "$TARGET_FILE" || true
-          exit 1
-          fi
-
       - name: Apply a patch to hide a certain feature.
         run: |
           echo "Changed to configuration directory: $CONFIG..."
@@ -561,7 +526,6 @@ jobs:
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "CONFIG_KPM=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
-            echo "CONFIG_NOMOUNT=y" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
           elif [ "${{ inputs.kernelsu_variant }}" == "MKSU" ]; then
             echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
