@@ -269,7 +269,7 @@ jobs:
             curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Adding KernelSU YukiSU..."
-            curl -LSs "https://raw.githubusercontent.com/Anatdx/YukiSU/main/kernel/setup.sh" | bash $BRANCH
+            curl -LSs "https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/Yuki/setup.sh" | bash $BRANCH
           fi
 
       - name: Add Baseband-guard support
