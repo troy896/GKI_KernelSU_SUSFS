@@ -172,7 +172,7 @@ jobs:
           # Clone repositories using the branch names
           git clone https://github.com/WildKernels/AnyKernel3.git -b "$ANYKERNEL_BRANCH"
           git clone https://github.com/ShirkNeko/susfs4ksu.git -b "$SUSFS_BRANCH"
-          git clone https://github.com/Tools-cx-app/kernel_patches.git
+          git clone https://github.com/WildKernels/kernel_patches.git
           # Sukisu的补丁仓库
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
           # Next Fix Patch
@@ -229,13 +229,13 @@ jobs:
           
           case "$branch_input" in
             "Stable (standard)")
-              echo "BRANCH=-s main" >> $GITHUB_ENV
+              echo "BRANCH=-s builtin" >> $GITHUB_ENV
               ;;
             "Dev (development)")
               case "$variant_input" in
                 "Official" | "MKSU") echo "BRANCH=-s main" >> $GITHUB_ENV ;;
                 "Next")              echo "BRANCH=-s next-susfs-dev" >> $GITHUB_ENV ;;
-                "SukiSU")           echo "BRANCH=-s builtin" >> $GITHUB_ENV ;;
+                "SukiSU")           echo "BRANCH=-s main" >> $GITHUB_ENV ;;
                 "YukiSU")           echo "BRANCH=-s main" >> $GITHUB_ENV ;;
                 *) 
                   echo "Error: Variant '$variant_input' of development branch not defined" >&2
@@ -265,7 +265,8 @@ jobs:
             curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash $BRANCH
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Adding KernelSU SukiSU..."
-            curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash $BRANCH
+            # curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash $BRANCH
+            curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Adding KernelSU YukiSU..."
             curl -LSs "https://raw.githubusercontent.com/Anatdx/YukiSU/main/kernel/setup.sh" | bash $BRANCH
