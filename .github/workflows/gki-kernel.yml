@@ -267,6 +267,8 @@ jobs:
             echo "Adding KernelSU SukiSU..."
           #  curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash $BRANCH
             curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
+            cd ./KernelSU
+            git checkout 496837ad81b9332d352b0b17184a0d637c81b7cc
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Adding KernelSU YukiSU..."
             curl -LSs "https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/Yuki/setup.sh" | bash $BRANCH
