@@ -355,12 +355,12 @@ jobs:
           echo "Applying HymoFS patches..."
 
           # Copy HymoFS patches
-          cp ../../HymoFS/src_modified/fs/hymofs.c ./fs
-          cp ../../HymoFS/src_modified/fs/hymofs_ioctl.h ./fs/
-          cp ../../HymoFS/src_modified/fs/hymofs.h ./fs/
-          cp ../../HymoFS/patch/hymofs.patch ./
+          cp ../../HymoFS/src_modified_with_susfs/fs/hymofs.c ./fs
+          cp ../../HymoFS/src_modified_with_susfs/fs/hymofs_ioctl.h ./fs/
+          cp ../../HymoFS/src_modified_with_susfs/fs/hymofs.h ./fs/
+          cp ../../HymoFS/patch/hymofs_with_susfs.patch ./
           
-          patch -p1 --fuzz=3 --forward < hymofs.patch || true
+          patch -p1 --fuzz=3 --forward < hymofs_with_susfs.patch || true
           echo "CONFIG_KSU_HYMOFS=y" >> ./arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_HYMOFS_LSMBPS=y" >> ./arch/arm64/configs/gki_defconfig
 
