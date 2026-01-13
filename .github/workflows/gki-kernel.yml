@@ -229,13 +229,13 @@ jobs:
           
           case "$branch_input" in
             "Stable (standard)")
-              echo "BRANCH=-s builtin" >> $GITHUB_ENV
+              echo "BRANCH=-s main" >> $GITHUB_ENV
               ;;
             "Dev (development)")
               case "$variant_input" in
                 "Official" | "MKSU") echo "BRANCH=-s main" >> $GITHUB_ENV ;;
                 "Next")              echo "BRANCH=-s next-susfs-dev" >> $GITHUB_ENV ;;
-                "SukiSU")           echo "BRANCH=-s tmp-builtin" >> $GITHUB_ENV ;;
+                "SukiSU")           echo "BRANCH=-s builtin" >> $GITHUB_ENV ;;
                 "YukiSU")           echo "BRANCH=-s main" >> $GITHUB_ENV ;;
                 *) 
                   echo "Error: Variant '$variant_input' of development branch not defined" >&2
