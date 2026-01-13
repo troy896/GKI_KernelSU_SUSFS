@@ -418,13 +418,6 @@ jobs:
           patch -p1 -F3 --forward < clear_page_16bytes_align__pi.patch
           patch -p1 --forward < "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" || true
 
-      - name: Apply nomount
-        run: |
-          cd "$CONFIG/common"
-          curl -LSs https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/experimental/patches/nomount-susfs-kernel-5.15-6.6.patch -o nomount.patch
-          patch -p1 --forward < nomount.patch || true
-          echo "CONFIG_NOMOUNT=y" >> ./arch/arm64/configs/gki_defconfig
-          
       - name: Application performance optimization patch
         run: |
           echo "=== Application performance optimization patch==="
