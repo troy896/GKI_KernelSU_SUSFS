@@ -229,7 +229,7 @@ jobs:
           
           case "$branch_input" in
             "Stable (standard)")
-              echo "BRANCH=-s susfs-rksu-master" >> $GITHUB_ENV
+              echo "BRANCH=-s builtin" >> $GITHUB_ENV
               ;;
             "Dev (development)")
               case "$variant_input" in
@@ -266,7 +266,7 @@ jobs:
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Adding KernelSU SukiSU..."
           #  curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash $BRANCH
-             curl -LSs "https://raw.githubusercontent.com/RapliVx/KernelSU/refs/heads/susfs-rksu-master/kernel/setup.sh" | bash -s susfs-rksu-master
+             curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Adding KernelSU YukiSU..."
             curl -LSs "https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/Yuki/setup.sh" | bash $BRANCH
