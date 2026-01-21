@@ -339,8 +339,8 @@ jobs:
             echo "Applying SukiSU specific SUSFS patch..."
             cd ..
             cd ./KernelSU
-            # curl -LSs https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/ksu.patch -o ksu.patch
-            # patch -p1 --fuzz=3 --forward < ksu.patch
+            curl -LSs https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/ksu.patch -o ksu.patch
+            patch -p1 --fuzz=3 --forward < ksu.patch
             # curl -LSs https://raw.githubusercontent.com/Anatdx/HymoFS/main/setup.sh | bash -s defconfig arch/arm64/configs/gki_defconfig
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
