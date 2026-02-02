@@ -502,7 +502,7 @@ jobs:
             echo "CONFIG_KSU_KPROBES_HOOK=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "CONFIG_KPM=n" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -633,9 +633,9 @@ jobs:
           if [ "${{ inputs.kernel_version }}" != "6.6" ]; then
             echo "Patching Image file..."
             
-            cd SukiSU_patch/
-            git checkout 83aa64b7548890bb1f2eff6c990c03a1802df27b
-            cd ..
+           # cd SukiSU_patch/
+           # git checkout 83aa64b7548890bb1f2eff6c990c03a1802df27b
+           # cd ..
 
             cp -r SukiSU_patch/kpm/patch_linux "$CONFIG/bazel-bin/common/kernel_aarch64/patch"
             
