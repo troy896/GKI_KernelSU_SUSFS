@@ -229,7 +229,7 @@ jobs:
           
           case "$branch_input" in
             "Stable (standard)")
-              echo "BRANCH=-s builtin" >> $GITHUB_ENV
+              echo "BRANCH=-s main" >> $GITHUB_ENV
               ;;
             "Dev (development)")
               case "$variant_input" in
@@ -265,7 +265,7 @@ jobs:
             curl -LSs "https://raw.githubusercontent.com/5ec1cff/KernelSU/main/kernel/setup.sh" | bash $BRANCH
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Adding KernelSU SukiSU..."
-            curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash $BRANCH
+            curl -LSs "https://raw.githubusercontent.com/ReSukiSU/ReSukiSU/main/kernel/setup.sh" | bash
           #  curl -LSs "https://raw.githubusercontent.com/SukiSU-Ultra/SukiSU-Ultra/main/kernel/setup.sh" | bash $BRANCH
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Adding KernelSU YukiSU..."
@@ -475,6 +475,27 @@ jobs:
           cp ../../kernel_patches/common/minimise_wakeup_time.patch ./
           patch -p1 --forward < minimise_wakeup_time.patch || true
           echo "[OK] Applied minimise_wakeup_time.patch"
+          
+          cp ../../kernel_patches/common/silence_system_logspam.patch ./
+          patch -p1 --forward < silence_system_logspam.patch || true
+
+          cp ../../kernel_patches/common/use_unlikely_wrap_cpufreq.patch ./
+          patch -p1 --forward < use_unlikely_wrap_cpufreq.patch || true
+
+          cp ../../kernel_patches/common/re_write_limitation_scaling_min_freq.patch ./
+          patch -p1 --forward < re_write_limitation_scaling_min_freq.patch || true
+
+          cp ../../kernel_patches/common/increase_sk_mem_packets.patch ./
+          patch -p1 --forward < increase_sk_mem_packets.patch || true
+
+          cp ../../kernel_patches/common/f2fs_enlarge_min_fsync_blocks.patch ./
+          patch -p1 --forward < f2fs_enlarge_min_fsync_blocks.patch || true
+
+          cp ../../kernel_patches/common/avoid_extra_s2idle_wake_attempts.patch ./
+          patch -p1 --forward < avoid_extra_s2idle_wake_attempts.patch || true
+
+          cp ../../kernel_patches/common/add_limitation_scaling_min_freq.patch ./
+          patch -p1 --forward < add_limitation_scaling_min_freq.patch || true
 
       - name: Apply a patch to hide a certain feature.
         run: |
