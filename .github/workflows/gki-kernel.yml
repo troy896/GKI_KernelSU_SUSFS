@@ -479,9 +479,6 @@ jobs:
           cp ../../kernel_patches/common/silence_system_logspam.patch ./
           patch -p1 --forward < silence_system_logspam.patch || true
 
-          cp ../../kernel_patches/common/re_write_limitation_scaling_min_freq.patch ./
-          patch -p1 --forward < re_write_limitation_scaling_min_freq.patch || true
-
           cp ../../kernel_patches/common/increase_sk_mem_packets.patch ./
           patch -p1 --forward < increase_sk_mem_packets.patch || true
 
@@ -490,9 +487,6 @@ jobs:
 
           cp ../../kernel_patches/common/avoid_extra_s2idle_wake_attempts.patch ./
           patch -p1 --forward < avoid_extra_s2idle_wake_attempts.patch || true
-
-          cp ../../kernel_patches/common/add_limitation_scaling_min_freq.patch ./
-          patch -p1 --forward < add_limitation_scaling_min_freq.patch || true
 
       - name: Apply a patch to hide a certain feature.
         run: |
