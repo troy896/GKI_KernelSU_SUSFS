@@ -336,6 +336,9 @@ jobs:
             cd ./common
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
+            curl -LSs "https://raw.githubusercontent.com/maxsteeel/nomount/refs/heads/master/patches/nomount-susfs-kernel-6.1.patch" -o nomount.patch
+            patch -p1 < nomount.patch || true
+            echo "CONFIG_NOMOUNT=y" >> ./arch/arm64/configs/gki_defconfig
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
