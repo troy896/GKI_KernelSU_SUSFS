@@ -1,0 +1,653 @@
+From 0cdec6c04f523f898c09dd985cda00f2629ab070 Mon Sep 17 00:00:00 2001
+From: backslashxx <118538522+backslashxx@users.noreply.github.com>
+Date: Mon, 15 Dec 2025 21:11:07 +0800
+Subject: [PATCH] kernel: extras: add avc spoof impl
+
+rebase of: https://github.com/KOWX712/KernelSU/commit/4b6f76d205b37b079931b227f98dfcfc0b7cf7e7
+
+Update Kbuild
+
+sync to pr 3031
+
+kernel/extras: prevent logging for ksu sid instead
+
+kernel: extras: properly version out slow_avc_audit_pre_handler
+Co-Authored-By: KOWX712 <185127155+kowx712@users.noreply.github.com>
+---
+ kernel/Kbuild                 |   2 +
+ kernel/extras.c               | 204 ++++++++++++++++++++++++++++++++++
+ kernel/feature.h              |   3 +
+ kernel/ksud.c                 |   2 +
+ kernel/syscall_hook_manager.c |   2 +
+ kernel/syscall_hook_manager.h |   4 +
+ 6 files changed, 217 insertions(+)
+ create mode 100644 kernel/extras.c
+
+diff --git a/kernel/Kbuild b/kernel/Kbuild
+index c1d512e0096c..e9e19b57bb63 100644
+--- a/kernel/Kbuild
++++ b/kernel/Kbuild
+@@ -16,6 +16,8 @@ kernelsu-objs += seccomp_cache.o
+ kernelsu-objs += file_wrapper.o
+ kernelsu-objs += util.o
+ 
++kernelsu-objs += extras.o
++
+ kernelsu-objs += selinux/selinux.o
+ kernelsu-objs += selinux/sepolicy.o
+ kernelsu-objs += selinux/rules.o
+diff --git a/kernel/extras.c b/kernel/extras.c
+new file mode 100644
+index 000000000000..b644a4eab35d
+--- /dev/null
++++ b/kernel/extras.c
+@@ -0,0 +1,204 @@
++#include <linux/security.h>
++#include <linux/atomic.h>
++#include <linux/version.h>
++
++#include "feature.h"
++#include "klog.h"
++#include "ksud.h"
++#include "seccomp_cache.h"
++#include "selinux/selinux.h"
++
++// sorry for the ifdef hell
++// but im too lazy to fragment this out.
++// theres only one feature so far anyway
++// - xx, 20251019
++
++static u32 su_sid = 0;
++
++// init as disabled by default
++static atomic_t disable_spoof = ATOMIC_INIT(1);
++
++void ksu_avc_spoof_enable();
++void ksu_avc_spoof_disable();
++
++static bool ksu_avc_spoof_enabled = true;
++static bool boot_completed = false;
++
++static int avc_spoof_feature_get(u64 *value)
++{
++	*value = ksu_avc_spoof_enabled ? 1 : 0;
++	return 0;
++}
++
++static int avc_spoof_feature_set(u64 value)
++{
++	bool enable = value != 0;
++
++	if (enable == ksu_avc_spoof_enabled) {
++		pr_info("avc_spoof: no need to change\n");
++		return 0;
++	}
++
++	ksu_avc_spoof_enabled = enable;
++
++	if (boot_completed) {
++		if (enable) {
++			ksu_avc_spoof_enable();
++		} else {
++			ksu_avc_spoof_disable();
++		}
++	}
++
++	pr_info("avc_spoof: set to %d\n", enable);
++
++	return 0;
++}
++
++static const struct ksu_feature_handler avc_spoof_handler = {
++	.feature_id = KSU_FEATURE_AVC_SPOOF,
++	.name = "avc_spoof",
++	.get_handler = avc_spoof_feature_get,
++	.set_handler = avc_spoof_feature_set,
++};
++
++static int get_sid()
++{
++	// dont load at all if we cant get sids
++	int err = security_secctx_to_secid(KERNEL_SU_CONTEXT, strlen(KERNEL_SU_CONTEXT), &su_sid);
++	if (err) {
++		pr_info("avc_spoof/get_sid: su_sid not found!\n");
++		return -1;
++	}
++	pr_info("avc_spoof/get_sid: su_sid: %u\n", su_sid);
++
++	return 0;
++}
++
++static int ksu_handle_slow_avc_audit_new(u32 tsid, u16 *tclass)
++{
++	if (atomic_read(&disable_spoof))
++		return 0;
++
++	if (tsid != su_sid)
++		return 0;
++
++	// we can just zero out tclass for gki
++	// since theres a check that if !tclass; return -EINVAL;
++	// this way all logging is prevented for su_sid
++	// this can cause splats due to WARN_ON though
++
++	pr_info("avc_spoof/slow_avc_audit: prevent log for sid: %u\n", su_sid);
++	*tclass = 0;
++
++	return 0;
++}
++
++#ifdef CONFIG_KPROBES
++#include <linux/kprobes.h>
++#include <linux/slab.h>
++#include "arch.h"
++static struct kprobe *slow_avc_audit_kp;
++
++static int slow_avc_audit_pre_handler(struct kprobe *p, struct pt_regs *regs)
++{
++	if (atomic_read(&disable_spoof))
++		return 0;
++
++	u32 tsid;
++	u16 *tclass;
++
++#if LINUX_VERSION_CODE >= KERNEL_VERSION(6, 4, 0)
++	tsid = (u32)PT_REGS_PARM2(regs);
++	tclass = (u16 *)&PT_REGS_PARM3(regs);
++#else
++	tsid = (u32)PT_REGS_PARM3(regs);
++	tclass = (u16 *)&PT_REGS_CCALL_PARM4(regs);
++#endif
++
++	ksu_handle_slow_avc_audit_new(tsid, tclass);
++
++	return 0;
++}
++
++// copied from upstream
++static struct kprobe *init_kprobe(const char *name,
++				  kprobe_pre_handler_t handler)
++{
++	struct kprobe *kp = kzalloc(sizeof(struct kprobe), GFP_KERNEL);
++	if (!kp)
++		return NULL;
++	kp->symbol_name = name;
++	kp->pre_handler = handler;
++
++	int ret = register_kprobe(kp);
++	pr_info("sucompat: register_%s kprobe: %d\n", name, ret);
++	if (ret) {
++		kfree(kp);
++		return NULL;
++	}
++
++	return kp;
++}
++static void destroy_kprobe(struct kprobe **kp_ptr)
++{
++	struct kprobe *kp = *kp_ptr;
++	if (!kp)
++		return;
++	unregister_kprobe(kp);
++	synchronize_rcu();
++	kfree(kp);
++	*kp_ptr = NULL;
++}
++#endif // CONFIG_KPROBES
++
++void ksu_avc_spoof_disable(void)
++{
++#ifdef CONFIG_KPROBES
++	pr_info("avc_spoof/exit: unregister slow_avc_audit kprobe!\n");
++	destroy_kprobe(&slow_avc_audit_kp);
++#endif
++	atomic_set(&disable_spoof, 1);
++	pr_info("avc_spoof/exit: slow_avc_audit spoofing disabled!\n");
++}
++
++void ksu_avc_spoof_enable(void) 
++{
++	int ret = get_sid();
++	if (ret) {
++		pr_info("avc_spoof/init: sid grab fail!\n");
++		return;
++	}
++
++#ifdef CONFIG_KPROBES
++	pr_info("avc_spoof/init: register slow_avc_audit kprobe!\n");
++	slow_avc_audit_kp = init_kprobe("slow_avc_audit", slow_avc_audit_pre_handler);
++#endif	
++	// once we get the sids, we can now enable the hook handler
++	atomic_set(&disable_spoof, 0);
++	
++	pr_info("avc_spoof/init: slow_avc_audit spoofing enabled!\n");
++}
++
++void ksu_avc_spoof_late_init()
++{
++	boot_completed = true;
++	
++    if (ksu_avc_spoof_enabled) {
++		ksu_avc_spoof_enable();
++	}
++}
++
++void ksu_avc_spoof_init()
++{
++	if (ksu_register_feature_handler(&avc_spoof_handler)) {
++		pr_err("Failed to register avc spoof feature handler\n");
++	}
++}
++
++void ksu_avc_spoof_exit()
++{
++	if (ksu_avc_spoof_enabled) {
++		ksu_avc_spoof_disable();
++	}
++	ksu_unregister_feature_handler(KSU_FEATURE_AVC_SPOOF);
++}
+diff --git a/kernel/feature.h b/kernel/feature.h
+index d9cbc92a7993..ceebe1f24b1a 100644
+--- a/kernel/feature.h
++++ b/kernel/feature.h
+@@ -8,6 +8,9 @@ enum ksu_feature_id {
+     KSU_FEATURE_KERNEL_UMOUNT = 1,
+     KSU_FEATURE_ENHANCED_SECURITY = 2,
+ 
++    // custom extensions
++    KSU_FEATURE_AVC_SPOOF = 10003,
++
+     KSU_FEATURE_MAX
+ };
+ 
+diff --git a/kernel/ksud.c b/kernel/ksud.c
+index 1c4f97551eb6..b1961af99694 100644
+--- a/kernel/ksud.c
++++ b/kernel/ksud.c
+@@ -109,11 +109,13 @@ void on_module_mounted(void)
+     ksu_module_mounted = true;
+ }
+ 
++extern void ksu_avc_spoof_late_init();
+ void on_boot_completed(void)
+ {
+     ksu_boot_completed = true;
+     pr_info("on_boot_completed!\n");
+     track_throne(true);
++    ksu_avc_spoof_late_init();
+ }
+ 
+ #define MAX_ARG_STRINGS 0x7FFFFFFF
+diff --git a/kernel/supercalls.c b/kernel/supercalls.c
+index 65593d08f956..5889c625c638 100644
+--- a/kernel/supercalls.c
++++ b/kernel/supercalls.c
+@@ -747,6 +747,25 @@ static int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void
+ 
+     // downstream: extensions go here!
+ 
++    // extensions
++    u64 reply = (u64)*arg;
++
++    if (magic2 == CHANGE_MANAGER_UID) {
++        // only root is allowed for this command
++        if (current_uid().val != 0)
++            return 0;
++
++        pr_info("sys_reboot: ksu_set_manager_appid to: %d\n", cmd);
++        ksu_set_manager_appid(cmd);
++
++        if (cmd == ksu_get_manager_appid()) {
++            if (copy_to_user((void __user *)*arg, &reply, sizeof(reply)))
++            	pr_info("sys_reboot: reply fail\n");
++        }
++
++        return 0;
++    }
++
+     return 0;
+ }
+ 
+diff --git a/kernel/supercalls.h b/kernel/supercalls.h
+index 2bf22d5d1281..4798f65eab32 100644
+--- a/kernel/supercalls.h
++++ b/kernel/supercalls.h
+@@ -142,4 +142,8 @@ int ksu_install_fd(void);
+ 
+ void ksu_supercalls_init(void);
+ void ksu_supercalls_exit(void);
++
++// extensions
++#define CHANGE_MANAGER_UID 10006
++
+ #endif // __KSU_H_SUPERCALLS
+diff --git a/kernel/supercalls.c b/kernel/supercalls.c
+index 5889c625c638..c4ddaaa48979 100644
+--- a/kernel/supercalls.c
++++ b/kernel/supercalls.c
+@@ -580,6 +580,59 @@ static int add_try_umount(void __user *arg)
+         return 0;
+     }
+ 
++    // this way userspace can deduce the memory it has to prepare.
++    case KSU_UMOUNT_GETSIZE: {
++        // check for pointer first
++        if (!cmd.arg)
++            return -EFAULT;
++        
++        size_t total_size = 0; // size of list in bytes
++
++        down_read(&mount_list_lock);
++        list_for_each_entry(entry, &mount_list, list) {
++            total_size = total_size + strlen(entry->umountable) + 1; // + 1 for \0
++        }
++        up_read(&mount_list_lock);
++
++        // debug
++        // pr_info("cmd_add_try_umount: total_size: %zu\n", total_size);
++            
++        if (copy_to_user((size_t __user *)cmd.arg, &total_size, sizeof(total_size)))
++            return -EFAULT;
++
++        return 0;
++    }
++        
++    // WARNING! this is straight up pointerwalking.
++    // this way we dont need to redefine the ioctl defs.
++    // this also avoids us needing to kmalloc
++    // userspace have to send pointer to memory (malloc/alloca) or pointer to a VLA.
++    case KSU_UMOUNT_GETLIST: {
++        // check for pointer first
++        if (!cmd.arg)
++            return -EFAULT;
++            
++        char *user_buf = (char *)cmd.arg;
++
++        down_read(&mount_list_lock);
++        list_for_each_entry(entry, &mount_list, list) {
++
++            //debug
++            //pr_info("cmd_add_try_umount: entry: %s\n", entry->umountable);
++            
++            if (copy_to_user((char __user *)user_buf, entry->umountable, strlen(entry->umountable) + 1 )) {
++                up_read(&mount_list_lock);
++                return -EFAULT;
++            }
++
++            // walk it! +1 for null terminator
++            user_buf = user_buf + strlen(entry->umountable) + 1;
++        }
++        up_read(&mount_list_lock);
++
++        return 0;
++    }
++
+     default: {
+         pr_err("cmd_add_try_umount: invalid operation %u\n", cmd.mode);
+         return -EINVAL;
+diff --git a/kernel/supercalls.h b/kernel/supercalls.h
+index 4798f65eab32..2682fedce658 100644
+--- a/kernel/supercalls.h
++++ b/kernel/supercalls.h
+@@ -145,5 +145,7 @@ void ksu_supercalls_exit(void);
+ 
+ // extensions
+ #define CHANGE_MANAGER_UID 10006
++#define KSU_UMOUNT_GETSIZE 107   // get list size // shit is u8 we cant fit 10k+ on it
++#define KSU_UMOUNT_GETLIST 108   // get list
+ 
+ #endif // __KSU_H_SUPERCALLS
+diff --git a/kernel/sucompat.c b/kernel/sucompat.c
+index 04d8d3ca8900..e3f688b9ffa9 100644
+--- a/kernel/sucompat.c
++++ b/kernel/sucompat.c
+@@ -20,6 +20,8 @@
+ #include "app_profile.h"
+ #include "util.h"
+ 
++extern void write_sulog(uint8_t sym);
++
+ #define SU_PATH "/system/bin/su"
+ #define SH_PATH "/system/bin/sh"
+ 
+@@ -83,6 +85,7 @@ int ksu_handle_faccessat(int *dfd, const char __user **filename_user, int *mode,
+     strncpy_from_user_nofault(path, *filename_user, sizeof(path));
+ 
+     if (unlikely(!memcmp(path, su, sizeof(su)))) {
++        write_sulog('a');
+         pr_info("faccessat su->sh!\n");
+         *filename_user = sh_user_path();
+     }
+@@ -108,6 +111,7 @@ int ksu_handle_stat(int *dfd, const char __user **filename_user, int *flags)
+     strncpy_from_user_nofault(path, *filename_user, sizeof(path));
+ 
+     if (unlikely(!memcmp(path, su, sizeof(su)))) {
++        write_sulog('s');
+         pr_info("newfstatat su->sh!\n");
+         *filename_user = sh_user_path();
+     }
+@@ -157,6 +161,8 @@ int ksu_handle_execve_sucompat(const char __user **filename_user,
+     if (likely(memcmp(path, su, sizeof(su))))
+         return 0;
+ 
++    write_sulog('x');
++
+     pr_info("sys_execve su found\n");
+     *filename_user = ksud_user_path();
+ 
+diff --git a/kernel/supercalls.c b/kernel/supercalls.c
+index c4ddaaa48979..ce0b20175120 100644
+--- a/kernel/supercalls.c
++++ b/kernel/supercalls.c
+@@ -27,6 +27,8 @@
+ #include "file_wrapper.h"
+ #include "syscall_hook_manager.h"
+ 
++#include "tiny_sulog.c"
++
+ // Permission check functions
+ bool only_manager(void)
+ {
+@@ -59,6 +61,8 @@ static int do_grant_root(void __user *arg)
+ {
+     // we already check uid above on allowed_for_su()
+ 
++    write_sulog('i'); // log ioctl escalation
++
+     pr_info("allow root for: %d\n", current_uid().val);
+     escape_with_root_profile();
+ 
+@@ -819,6 +823,15 @@ static int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void
+         return 0;
+     }
+ 
++    if (magic2 == GET_SULOG_DUMP) {
++        // only root is allowed for this command
++        if (current_uid().val != 0)
++            return 0;
++
++        send_sulog_dump(*arg);
++        return 0;
++    }
++
+     return 0;
+ }
+ 
+diff --git a/kernel/supercalls.h b/kernel/supercalls.h
+index 2682fedce658..5cb0bfc87c23 100644
+--- a/kernel/supercalls.h
++++ b/kernel/supercalls.h
+@@ -147,5 +147,6 @@ void ksu_supercalls_exit(void);
+ #define CHANGE_MANAGER_UID 10006
+ #define KSU_UMOUNT_GETSIZE 107   // get list size // shit is u8 we cant fit 10k+ on it
+ #define KSU_UMOUNT_GETLIST 108   // get list
++#define GET_SULOG_DUMP 10009     // get sulog dump, max, last 100 escalations
+ 
+ #endif // __KSU_H_SUPERCALLS
+diff --git a/kernel/tiny_sulog.c b/kernel/tiny_sulog.c
+new file mode 100644
+index 000000000000..9d3cbdff6fca
+--- /dev/null
++++ b/kernel/tiny_sulog.c
+@@ -0,0 +1,68 @@
++// half assed ringbuffer
++// 5 bytes
++struct sulog_entry {
++	uint8_t symbol;
++	uint32_t uid; // mebbe u16?
++} __attribute__((packed));
++
++#define SULOG_ENTRY_MAX 100
++#define SULOG_BUFSIZ SULOG_ENTRY_MAX * (sizeof (struct sulog_entry))
++
++char sulog_buf[SULOG_BUFSIZ] = {0};
++static void *sulog_buf_ptr = (void *)sulog_buf;
++static uint8_t sulog_index_next = 0;
++
++static DEFINE_SPINLOCK(sulog_lock);
++
++void write_sulog(uint8_t sym)
++{
++	unsigned int offset = sulog_index_next * sizeof(struct sulog_entry);
++
++	struct sulog_entry entry = {0};
++	entry.symbol = sym;
++	entry.uid = (uint32_t)current_uid().val;
++
++	// pr_info("%s: symbol: %c uid: %d index: %d\n", __func__, entry.symbol, entry.uid, sulog_index_next);
++
++	// pr_info("%s: addr: 0x%llx \n", __func__, (uintptr_t)(sulog_buf_ptr + offset));
++
++	spin_lock(&sulog_lock);
++	memcpy(sulog_buf_ptr + offset, &entry, sizeof(entry));
++	spin_unlock(&sulog_lock);
++
++	// move ptr for next iteration
++	sulog_index_next = sulog_index_next + 1;
++
++	if (sulog_index_next >= SULOG_ENTRY_MAX)
++		sulog_index_next = 0;
++}
++
++struct sulog_entry_rcv_ptr {
++	uint64_t int_ptr; // send index here
++	uint64_t buf_ptr; // send buf here
++};
++
++void send_sulog_dump(void __user *uptr)
++{
++	struct sulog_entry_rcv_ptr sbuf = {0};
++
++	if (copy_from_user(&sbuf, uptr, sizeof(sbuf) ))
++		return;
++
++	if (!sbuf.int_ptr)
++		return;
++
++	if (!sbuf.buf_ptr)
++		return;
++
++	if (copy_to_user((void __user *)sbuf.int_ptr, &sulog_index_next, sizeof(sulog_index_next) ))
++		return;
++
++	spin_lock(&sulog_lock);
++	if (copy_to_user((void __user *)sbuf.buf_ptr, &sulog_buf, sizeof(sulog_buf) )) {
++		spin_unlock(&sulog_lock);
++		return;
++	}
++	spin_unlock(&sulog_lock);
++
++}
+diff --git a/kernel/supercalls.c b/kernel/supercalls.c
+index 22a0faa4c92d..65593d08f956 100644
+--- a/kernel/supercalls.c
++++ b/kernel/supercalls.c
+@@ -715,19 +715,23 @@ static void ksu_install_fd_tw_func(struct callback_head *cb)
+     kfree(tw);
+ }
+ 
+-static int reboot_handler_pre(struct kprobe *p, struct pt_regs *regs)
++// downstream: make sure to pass arg as reference, this can allow us to extend things.
++static int ksu_handle_sys_reboot(int magic1, int magic2, unsigned int cmd, void __user **arg)
+ {
+-    struct pt_regs *real_regs = PT_REAL_REGS(regs);
+-    int magic1 = (int)PT_REGS_PARM1(real_regs);
+-    int magic2 = (int)PT_REGS_PARM2(real_regs);
+-    unsigned long arg4;
++
++    if (magic1 != KSU_INSTALL_MAGIC1)
++    	return 0;
++
++    pr_info("sys_reboot: intercepted call! magic: 0x%x id: %d\n", magic1, magic2);
++
++    // arg4 = (unsigned long)PT_REGS_SYSCALL_PARM4(real_regs);
++    // downstream: dereference arg as arg4 so we can be inline to upstream
++    void __user *arg4 = (void __user *)*arg;
+ 
+     // Check if this is a request to install KSU fd
+-    if (magic1 == KSU_INSTALL_MAGIC1 && magic2 == KSU_INSTALL_MAGIC2) {
++    if (magic2 == KSU_INSTALL_MAGIC2) {
+         struct ksu_install_fd_tw *tw;
+ 
+-        arg4 = (unsigned long)PT_REGS_SYSCALL_PARM4(real_regs);
+-
+         tw = kzalloc(sizeof(*tw), GFP_ATOMIC);
+         if (!tw)
+             return 0;
+@@ -741,9 +745,23 @@ static int reboot_handler_pre(struct kprobe *p, struct pt_regs *regs)
+         }
+     }
+ 
++    // downstream: extensions go here!
++
+     return 0;
+ }
+ 
++static int reboot_handler_pre(struct kprobe *p, struct pt_regs *regs)
++{
++    struct pt_regs *real_regs = PT_REAL_REGS(regs);
++    int magic1 = (int)PT_REGS_PARM1(real_regs);
++    int magic2 = (int)PT_REGS_PARM2(real_regs);
++    int cmd = (int)PT_REGS_PARM3(real_regs);
++    void __user **arg = (void __user **)&PT_REGS_SYSCALL_PARM4(real_regs);
++
++    return ksu_handle_sys_reboot(magic1, magic2, cmd, arg);
++
++}
++
+ static struct kprobe reboot_kp = {
+     .symbol_name = REBOOT_SYMBOL,
+     .pre_handler = reboot_handler_pre,
+diff --git a/kernel/syscall_hook_manager.c b/kernel/syscall_hook_manager.c
+index 55f95d76c604..992e6e97a1a4 100644
+--- a/kernel/syscall_hook_manager.c
++++ b/kernel/syscall_hook_manager.c
+@@ -359,6 +359,7 @@ void ksu_syscall_hook_manager_init(void)
+ 
+     ksu_setuid_hook_init();
+     ksu_sucompat_init();
++    ksu_avc_spoof_init();
+ }
+ 
+ void ksu_syscall_hook_manager_exit(void)
+@@ -377,4 +378,5 @@ void ksu_syscall_hook_manager_exit(void)
+ 
+     ksu_sucompat_exit();
+     ksu_setuid_hook_exit();
++    ksu_avc_spoof_exit();
+ }
+diff --git a/kernel/syscall_hook_manager.h b/kernel/syscall_hook_manager.h
+index 54d6e544fff5..c8f50299de70 100644
+--- a/kernel/syscall_hook_manager.h
++++ b/kernel/syscall_hook_manager.h
+@@ -18,6 +18,10 @@ void ksu_mark_running_process(void);
+ int ksu_get_task_mark(pid_t pid);
+ int ksu_set_task_mark(pid_t pid, bool mark);
+ 
++// extras.c
++void ksu_avc_spoof_init(void);
++void ksu_avc_spoof_exit(void);
++
+ static inline void ksu_set_task_tracepoint_flag(struct task_struct *t)
+ {
+ #if LINUX_VERSION_CODE >= KERNEL_VERSION(5, 11, 0)
