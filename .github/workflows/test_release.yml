@@ -168,9 +168,7 @@ jobs:
       - get_manager
     if: always()
     env:
-      REPO_OWNER: troy896
-      REPO_NAME: GKI_KernelSU_SUSFS
-      GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+      GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       RELEASE_NAME: "GKI Kernel: ${{ inputs.kernelsu_variant == 'Next' && 'KernelSU-' || '' }} ${{ inputs.kernelsu_variant }}"
       INITIAL_RELEASE_NOTES: |
         This release includes **${{ inputs.kernelsu_variant == 'Next' && 'KernelSU' || '' }}${{ inputs.kernelsu_variant }}**
@@ -187,7 +185,6 @@ jobs:
         ${{ inputs.BBG && '-> BBG Support' || '' }}
         -> BBG ${{ inputs.BBG && 'supported' || 'not supported' }}
         ${{ inputs.use_kpm && '-> KPM Support' || '' }}
-        -> **LZ4KD&ONEPLUS_LZ4K** ${{ inputs.use_zram && 'supported' || 'not supported' }}
         
         <details>
         <summary>Notes:</summary>
@@ -196,7 +193,7 @@ jobs:
         </details>
         
         Modules:
-        -> https://github.com/sidex15/ksu_module_susfs
+        -> https://github.com/rrr333nnn333/BRENE
     steps:
       - name: Conditional Release Check
         id: release_check
@@ -218,14 +215,14 @@ jobs:
       - name: Generate and Create New Tag (Atomic)
         if: ${{ steps.release_check.outcome == 'success' }}
         env:
-          GITHUB_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           set -e
 
           BASE_VERSION="v2.0"
           
           # Fetch all existing tags using git ls-remote
-          EXISTING_TAGS=$(git ls-remote --tags https://github.com/$REPO_OWNER/$REPO_NAME.git | awk '{print $2}' | sed 's/refs\/tags\///' || true)
+          EXISTING_TAGS=$(git ls-remote --tags https://github.com/troy896/GKI_KernelSU_SUSFS.git | awk '{print $2}' | sed 's/refs\/tags\///' || true)
 
           # Find highest revision number for this base version
           MAX_REVISION=0
@@ -278,10 +275,10 @@ jobs:
             
           elif [ "${{ inputs.kernelsu_variant }}" = "SukiSU" ]; then
             echo "Processing SukiSU variant"
-            git clone https://github.com/SukiSU-Ultra/SukiSU-Ultra.git suki-tmp
+            git clone https://github.com/ReSukiSU/ReSukiSU.git suki-tmp
             cd suki-tmp
             KSU_GIT_VERSION=$(git rev-list --count HEAD)
-            KSU_VERSION=$((10000 + KSU_GIT_VERSION + 700))
+            KSU_VERSION=$((4 * 10000 + KSU_GIT_VERSION - 2815))
             echo "SukiSU version: $KSU_VERSION"
             cd ..
             rm -rf suki-tmp
@@ -319,7 +316,7 @@ jobs:
             elif [ "${{ inputs.kernelsu_variant }}" == "Next" ]; then
               KSU_REPO_URL="https://github.com/KernelSU-Next/KernelSU-Next.git"
             elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-              KSU_REPO_URL="https://github.com/ShirkNeko/KernelSU.git"
+              KSU_REPO_URL="https://github.com/ReSukiSU/ReSukiSU.git"
             fi
             
             if [ -n "$KSU_REPO_URL" ]; then
@@ -344,8 +341,8 @@ jobs:
             KSU_REPO_URL="https://github.com/5ec1cff/KernelSU.git"
             KSU_REPO_URL2="5ec1cff/KernelSU"
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            KSU_REPO_URL="https://github.com/ShirkNeko/KernelSU.git"
-            KSU_REPO_URL2="ShirkNeko/KernelSU"
+            KSU_REPO_URL="https://github.com/ReSukiSU/ReSukiSU.git"
+            KSU_REPO_URL2="ReSukiSU/ReSukiSU"
           else
             echo "Warning: Unknown KernelSU variant selected. Defaulting to Official for URL generation."
             KSU_REPO_URL="https://github.com/tiann/KernelSU.git"
@@ -467,12 +464,12 @@ jobs:
           prerelease: true
           release_name: ${{ env.RELEASE_NAME }}
           body: ${{ env.FULL_RELEASE_NOTES }}
-          token: ${{ secrets.MY_GITHUB_TOKEN }}
+          token: ${{ secrets.GITHUB_TOKEN }}
           
       - name: Upload Release Assets
         if: ${{ steps.release_check.outcome == 'success' }}
         env:
-          GH_TOKEN: ${{ secrets.MY_GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           echo "Uploading release assets..."
           
@@ -489,16 +486,3 @@ jobs:
         run: |
           echo "Uploaded assets:"
           gh release view "${{ env.NEW_TAG }}" --json assets -q '.assets[].name'
-
-      - name: send telegram message on push
-        env:
-          TELEGRAM_BOT_TOKEN: ${{ secrets.TELEGRAM_BOT_TOKEN }}
-          TELEGRAM_CHAT_ID: ${{ secrets.TELEGRAM_CHAT_ID }}
-          TELEGRAM_MESSAGE_THREAD_ID: ${{ secrets.TELEGRAM_MESSAGE_THREAD_ID }}
-        run: |
-            curl -X POST "https://api.telegram.org/bot$TELEGRAM_BOT_TOKEN/sendMessage" \
-            -d "chat_id=$TELEGRAM_CHAT_ID" \
-            -d "message_thread_id=$TELEGRAM_MESSAGE_THREAD_ID" \
-            -d "text=Latest release: 
-            https://github.com/ShirkNeko/GKI_KernelSU_SUSFS/releases/tag/${{ env.NEW_TAG }}
-            ${{ env.RELEASE_NOTES }}"    
