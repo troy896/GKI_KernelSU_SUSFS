@@ -336,10 +336,6 @@ jobs:
             cd ./common
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
-            cd ..
-            cd ./KernelSU
-            curl -LSs "https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/toolkit.patch" -o toolkit.patch
-            patch -p1 --fuzz=3 < toolkit.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
