@@ -422,6 +422,13 @@ jobs:
           sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' clear_page_16bytes_align.patch > clear_page_16bytes_align__pi.patch
           patch -p1 -F3 --forward < clear_page_16bytes_align__pi.patch
           patch -p1 --forward < "../../kernel_patches/common/unicode_bypass_fix_6.1+.patch" || true
+          patch -p1 --forward < "../../kernel_patches/wild/susfs_fix_patches/v2.0.0/a14-6.1/base.c.patch" || true
+          if ! grep -qF '#include <linux/dma-buf.h>' ./fs/proc/base.c; then
+            sed -i '/#include <linux\/cpufreq_times.h>/a #include <linux\/dma-buf.h>' ./fs/proc/base.c
+          fi
+          if grep -q 'susfs_is_current_proc_umounted' ./fs/proc/base.c && ! grep -qF '#include <linux/susfs.h>' ./fs/proc/base.c; then
+            sed -i '/#include <linux\/dma-buf.h>/a #include <linux\/susfs.h>' ./fs/proc/base.c
+          fi
 
       - name: Apply a patch to hide a certain feature.
         run: |
