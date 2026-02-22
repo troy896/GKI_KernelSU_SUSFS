@@ -336,6 +336,8 @@ jobs:
             cd ./common
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
+            curl -LSs "https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/toolkit.patch" -o toolkit.patch
+            patch -p1 --fuzz=3 < toolkit.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
@@ -363,22 +365,6 @@ jobs:
           echo "CONFIG_KSU_HYMOFS=y" >> ./arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_HYMOFS_LSMBPS=y" >> ./arch/arm64/configs/gki_defconfig
 
-      - name: 升级LZ4至1.10.0
-        run: |
-          cd "$CONFIG/common"
-          echo "升级 LZ4..."
-          rm -f lib/lz4/lz4_compress.c lib/lz4/lz4_decompress.c lib/lz4/lz4defs.h lib/lz4/lz4hc_compress.c
-
-          cp -r ../../zzh_patch/zram/lz4/* ./lib/lz4/
-          cp -r ../../zzh_patch/zram/include/linux/* ./include/linux/
-          cp -r ../../zzh_patch/zram/${{ inputs.kernel_version }}/lz4_1.10.0.patch ./
-
-          patch -p1 -F 3 --fuzz=5 < lz4_1.10.0.patch || true
-
-          if [ -f "fs/f2fs/Makefile" ] && ! grep -qF "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" "fs/f2fs/Makefile"; then
-            echo "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" >> "fs/f2fs/Makefile"
-          fi
-          
       - name: Some fixes/patches
         run: |
           cd "$CONFIG/common"
@@ -421,13 +407,6 @@ jobs:
           sed -e 's/SYM_FUNC_START_PI(clear_page)/SYM_FUNC_START_PI(__pi_clear_page)/' clear_page_16bytes_align.patch > clear_page_16bytes_align__pi.patch
           patch -p1 -F3 --forward < clear_page_16bytes_align__pi.patch
           patch -p1 --forward < "../../kernel_patches/common/unicode_bypass_fix_6.1+.patch" || true
-          patch -p1 --forward < "../../kernel_patches/wild/susfs_fix_patches/v2.0.0/a14-6.1/base.c.patch" || true
-          if ! grep -qF '#include <linux/dma-buf.h>' ./fs/proc/base.c; then
-            sed -i '/#include <linux\/cpufreq_times.h>/a #include <linux\/dma-buf.h>' ./fs/proc/base.c
-          fi
-          if grep -q 'susfs_is_current_proc_umounted' ./fs/proc/base.c && ! grep -qF '#include <linux/susfs.h>' ./fs/proc/base.c; then
-            sed -i '/#include <linux\/dma-buf.h>/a #include <linux\/susfs.h>' ./fs/proc/base.c
-          fi
 
       - name: Application performance optimization patch
         run: |
