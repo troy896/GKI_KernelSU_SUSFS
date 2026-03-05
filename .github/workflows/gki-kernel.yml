@@ -369,28 +369,23 @@ jobs:
           cp -r ../../SukiSU_patch/other/zram/lz4k/include/linux/* ./include/linux/
           cp -r ../../SukiSU_patch/other/zram/lz4k/lib/* ./lib/
           cp -r ../../SukiSU_patch/other/zram/lz4k/crypto/* ./crypto/
-          cp -r ../../SukiSU_patch/other/zram/lz4k_oplus ./lib/
 
           cp ../../SukiSU_patch/other/zram/zram_patch/6.1/lz4kd.patch ./
           patch -p1 -F 3 < lz4kd.patch || true
-
-          cp ../../SukiSU_patch/other/zram/zram_patch/6.1/lz4k_oplus.patch ./
-          patch -p1 -F 3 < lz4k_oplus.patch || true
 
       - name: Configure ZRAM options
         run: |
           cd "$CONFIG"
 
-          sed -i 's/"drivers\/block\/zram\/zram\.ko",//g; s/"mm\/zsmalloc\.ko",//g' "$CONFIG/common/modules.bzl"
-          echo "CONFIG_MODULE_SIG_FORCE=n" >> "$CONFIG/common/arch/arm64/configs/gki_defconfig"
+          sed -i 's/"drivers\/block\/zram\/zram\.ko",//g; s/"mm\/zsmalloc\.ko",//g' ./common/modules.bzl
+          echo "CONFIG_MODULE_SIG_FORCE=n" >> ./common/arch/arm64/configs/gki_defconfig
 
-          if grep -q "CONFIG_ZSMALLOC=y" "$CONFIG/common/arch/arm64/configs/gki_defconfig" && grep -q "CONFIG_ZRAM=y" "$CONFIG/common/arch/arm64/configs/gki_defconfig"; then
-            cat >> "$CONFIG/common/arch/arm64/configs/gki_defconfig" << 'EOF'
+          if grep -q "CONFIG_ZSMALLOC=y" ./common/arch/arm64/configs/gki_defconfig && grep -q "CONFIG_ZRAM=y" ./common/arch/arm64/configs/gki_defconfig; then
+            cat >> ./common/arch/arm64/configs/gki_defconfig << 'EOF'
           CONFIG_CRYPTO_LZ4HC=y
           CONFIG_CRYPTO_LZ4K=y
           CONFIG_CRYPTO_LZ4KD=y
           CONFIG_CRYPTO_842=y
-          CONFIG_CRYPTO_LZ4K_OPLUS=y
           EOF
           fi
           
