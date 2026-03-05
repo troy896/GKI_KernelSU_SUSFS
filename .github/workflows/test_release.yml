@@ -48,7 +48,7 @@ on:
         description: 'Custom version name (e.g., characters after 5.10.198 / leave blank to use default version number)'
         required: false
         type: string
-        default: '-android14-11-gb812b232b095-ab14605088'
+        default: '-android14-11-gfa1d6308d1fe-ab14691759'
       use_zram:
         description: 'Enable more ZRAM algorithms?'
         required: true
