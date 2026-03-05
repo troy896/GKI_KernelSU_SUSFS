@@ -336,6 +336,10 @@ jobs:
             cd ./common
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
+            cp "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" ./
+            cp "../../Action-Build/patches/IPv6_NAT_FIX.patch" ./
+            patch -p1 --forward < unicode_bypass_fix_6.1+.patch || true
+            patch -p1 --forward < IPv6_NAT_FIX.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
@@ -400,20 +404,9 @@ jobs:
   
       - name: Apply UNICODE_BYPASS and MEMORY_OPT
         run: |
-          cd "$CONFIG"
-          if [ "$FORMATTED_BRANCH" = "android14-6.1" ]; then
-            cd ./common
-            cp "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" ./
-            cp "../../Action-Build/patches/IPv6_NAT_FIX.patch" ./
-            patch -p1 --forward < unicode_bypass_fix_6.1+.patch || true
-            patch -p1 --forward < IPv6_NAT_FIX.patch || true
-          fi
-          
-          if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            cd ./KernelSU
-            cp "../../Action-Build/patches/ksu_toolkit.patch" ./
-            patch -p1 --fuzz=3 --forward < ksu_toolkit.patch || true
-          fi
+          cd "$CONFIG/KernelSU"
+          cp "../../Action-Build/patches/ksu_toolkit.patch" ./
+          patch -p1 --fuzz=3 --forward < ksu_toolkit.patch || true
           
       - name: Apply a patch to hide a certain feature.
         run: |
