@@ -401,12 +401,6 @@ jobs:
               fi
             fi
           fi
-  
-      - name: Apply UNICODE_BYPASS and MEMORY_OPT
-        run: |
-          cd "$CONFIG/common"
-          cp "../../Action-Build/patches/ksu_toolkit.patch" ./
-          patch -p1 --fuzz=3 --forward < ksu_toolkit.patch || true
           
       - name: Apply a patch to hide a certain feature.
         run: |
