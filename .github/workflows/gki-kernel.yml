@@ -358,8 +358,7 @@ jobs:
 
           cp -r ../../zzh/zram/lz4/* ./lib/lz4/
           cp -r ../../zzh/zram/include/linux/* ./include/linux/
-          cp ../../zzh/zram/6.1/lz4_1.10.0.patch ./
-          patch -p1 -F 3 --fuzz=5 < lz4_1.10.0.patch || true
+          bash ../../zzh/zram/apply_lz4_neon.sh
 
           if [ -f "fs/f2fs/Makefile" ] && ! grep -qF "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" "fs/f2fs/Makefile"; then
             echo "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" >> "fs/f2fs/Makefile"
@@ -377,16 +376,19 @@ jobs:
         run: |
           cd "$CONFIG"
 
+          if grep -q "CONFIG_ZSMALLOC" ./common/arch/arm64/configs/gki_defconfig; then
+              sed -i 's/CONFIG_ZSMALLOC=m/CONFIG_ZSMALLOC=y/g' ./common/arch/arm64/configs/gki_defconfig
+            else
+              echo "CONFIG_ZSMALLOC=y" >> ./common/arch/arm64/configs/gki_defconfig
+            fi
+            sed -i 's/CONFIG_ZRAM=m/CONFIG_ZRAM=y/g' ./common/arch/arm64/configs/gki_defconfig
+          fi
+
           sed -i 's/"drivers\/block\/zram\/zram\.ko",//g; s/"mm\/zsmalloc\.ko",//g' ./common/modules.bzl
-          echo "CONFIG_MODULE_SIG_FORCE=n" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_MODULE_SIG_FORCE=n" >> ./common/arch/arm64/configs/gki_defconfig
 
           if grep -q "CONFIG_ZSMALLOC=y" ./common/arch/arm64/configs/gki_defconfig && grep -q "CONFIG_ZRAM=y" ./common/arch/arm64/configs/gki_defconfig; then
-            cat >> ./common/arch/arm64/configs/gki_defconfig << 'EOF'
-          CONFIG_CRYPTO_LZ4HC=y
-          CONFIG_CRYPTO_LZ4K=y
-          CONFIG_CRYPTO_LZ4KD=y
-          CONFIG_CRYPTO_842=y
-          EOF
+            cat ../../zzh/config/zram.config >> ./common/arch/arm64/configs/gki_defconfig
           fi
           
       - name: Some fixes/patches
