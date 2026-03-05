@@ -379,16 +379,13 @@ jobs:
 
       - name: Configure ZRAM options
         run: |
-          CONFIG_FILE="$CONFIG/common/arch/arm64/configs/gki_defconfig"
-
-          echo "CONFIG_ZSMALLOC=y" >> "$CONFIG_FILE"
-          sed -i 's/CONFIG_ZRAM=m/CONFIG_ZRAM=y/g' "$CONFIG_FILE"
+          cd "$CONFIG"
 
           sed -i 's/"drivers\/block\/zram\/zram\.ko",//g; s/"mm\/zsmalloc\.ko",//g' "$CONFIG/common/modules.bzl"
-          echo "CONFIG_MODULE_SIG_FORCE=n" >> "$CONFIG_FILE"
+          echo "CONFIG_MODULE_SIG_FORCE=n" >> "$CONFIG/common/arch/arm64/configs/gki_defconfig"
 
-          if grep -q "CONFIG_ZSMALLOC=y" "$CONFIG_FILE" && grep -q "CONFIG_ZRAM=y" "$CONFIG_FILE"; then
-            cat >> "$CONFIG_FILE" << 'EOF'
+          if grep -q "CONFIG_ZSMALLOC=y" "$CONFIG/common/arch/arm64/configs/gki_defconfig" && grep -q "CONFIG_ZRAM=y" "$CONFIG/common/arch/arm64/configs/gki_defconfig"; then
+            cat >> "$CONFIG/common/arch/arm64/configs/gki_defconfig" << 'EOF'
           CONFIG_CRYPTO_LZ4HC=y
           CONFIG_CRYPTO_LZ4K=y
           CONFIG_CRYPTO_LZ4KD=y
