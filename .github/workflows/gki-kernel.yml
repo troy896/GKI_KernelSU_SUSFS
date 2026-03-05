@@ -358,7 +358,8 @@ jobs:
 
           cp -r ../../zzh/zram/lz4/* ./lib/lz4/
           cp -r ../../zzh/zram/include/linux/* ./include/linux/
-          bash ../../zzh/zram/apply_lz4_neon.sh
+          cp ../../zzh/zram/apply_lz4_neon.sh ./
+          bash apply_lz4_neon.sh
 
           if [ -f "fs/f2fs/Makefile" ] && ! grep -qF "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" "fs/f2fs/Makefile"; then
             echo "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" >> "fs/f2fs/Makefile"
@@ -368,9 +369,13 @@ jobs:
           cp -r ../../SukiSU_patch/other/zram/lz4k/include/linux/* ./include/linux/
           cp -r ../../SukiSU_patch/other/zram/lz4k/lib/* ./lib/
           cp -r ../../SukiSU_patch/other/zram/lz4k/crypto/* ./crypto/
+          cp -r ../../SukiSU_patch/other/zram/lz4k_oplus ./lib/
 
           cp ../../SukiSU_patch/other/zram/zram_patch/6.1/lz4kd.patch ./
           patch -p1 -F 3 < lz4kd.patch || true
+
+          cp ../../SukiSU_patch/other/zram/zram_patch/6.1/lz4k_oplus.patch ./
+          patch -p1 -F 3 < lz4k_oplus.patch || true
 
       - name: Configure ZRAM options
         run: |
