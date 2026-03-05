@@ -177,7 +177,7 @@ jobs:
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
           # Next Fix Patch
           git clone https://github.com/zzh20188/GKI_KernelSU_SUSFS.git zzh_patch
-          git clone https://github.com/Numbersf/Action-Build.git
+          git clone https://github.com/Numbersf/Action-Build.git -b "ReSukiSU"
           
       - name: Sets the CONFIG environment variable
         run: |
@@ -401,9 +401,14 @@ jobs:
       - name: Apply UNICODE_BYPASS and MEMORY_OPT
         run: |
           cd "$CONFIG/common"
-          cp "../../kernel_patches/common/clear_page_16bytes_align.patch" ./
-          patch -p1 -F3 --forward < clear_page_16bytes_align.patch
-          patch -p1 --forward < "../../kernel_patches/common/unicode_bypass_fix_6.1+.patch" || true
+          cp "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" ./
+          cp "../../Action-Build/patches/IPv6_NAT_FIX.patch" ./
+          cp "../../Action-Build/patches/No_5uS.patch" ./
+          cp "../../Action-Build/patches/ksu_toolkit.patch" ./
+          patch -p1 --forward < unicode_bypass_fix_6.1+.patch || true
+          patch -p1 --forward < IPv6_NAT_FIX.patch || true
+          patch -p1 --forward < No_5uS.patch || true
+          patch -p1 --forward < ksu_toolkit.patch || true
           
       - name: Apply a patch to hide a certain feature.
         run: |
