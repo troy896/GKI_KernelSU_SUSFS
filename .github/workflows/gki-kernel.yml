@@ -176,7 +176,7 @@ jobs:
           # Sukisu的补丁仓库
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
           # Next Fix Patch
-          git clone https://github.com/zzh20188/GKI_KernelSU_SUSFS.git zzh_patch
+          git clone https://github.com/zzh20188/GKI_KernelSU_SUSFS.git zzh
           git clone https://github.com/Numbersf/Action-Build.git -b "ReSukiSU"
           
       - name: Sets the CONFIG environment variable
@@ -349,24 +349,54 @@ jobs:
             exit 1
           fi
 
-      - name: Enable Hymofs
-        if: ${{ inputs.use_hymofs }}
+      - name: Configure ZRAM LZ4 patch stack
         run: |
-          echo "Changed to configuration directory: $CONFIG..."
+          # Phase 1: Upgrade LZ4 to 1.10.0
+          echo "Upgrade LZ4..."
           cd "$CONFIG/common"
+          rm -f lib/lz4/lz4_compress.c lib/lz4/lz4_decompress.c lib/lz4/lz4defs.h lib/lz4/lz4hc_compress.c
 
-          echo "Applying HymoFS patches..."
+          cp -r ../../zzh/zram/lz4/* ./lib/lz4/
+          cp -r ../../zzh/zram/include/linux/* ./include/linux/
+          cp ../../zzh/zram/6.1/lz4_1.10.0.patch ./
+          patch -p1 -F 3 --fuzz=5 < lz4_1.10.0.patch || true
 
-          # Copy HymoFS patches
-          cp ../../HymoFS/src_modified_with_susfs/fs/hymofs.c ./fs
-          cp ../../HymoFS/src_modified_with_susfs/fs/hymofs_ioctl.h ./fs/
-          cp ../../HymoFS/src_modified_with_susfs/fs/hymofs.h ./fs/
-          cp ../../HymoFS/patch/hymofs_with_susfs.patch ./
+          if [ -f "fs/f2fs/Makefile" ] && ! grep -qF "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" "fs/f2fs/Makefile"; then
+            echo "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" >> "fs/f2fs/Makefile"
+          fi
+
+          # Phase Two: Applying LZ4KD and LZ4K_OPLUS Patches
+          cp -r ../../SukiSU_patch/other/zram/lz4k/include/linux/* ./include/linux/
+          cp -r ../../SukiSU_patch/other/zram/lz4k/lib/* ./lib/
+          cp -r ../../SukiSU_patch/other/zram/lz4k/crypto/* ./crypto/
+          cp -r ../../SukiSU_patch/other/zram/lz4k_oplus ./lib/
+
+          cp ../../SukiSU_patch/other/zram/zram_patch/6.1/lz4kd.patch ./
+          patch -p1 -F 3 < lz4kd.patch || true
+
+          cp ../../SukiSU_patch/other/zram/zram_patch/6.1/lz4k_oplus.patch ./
+          patch -p1 -F 3 < lz4k_oplus.patch || true
+
+      - name: Configure ZRAM options
+        run: |
+          CONFIG_FILE="$CONFIG/common/arch/arm64/configs/gki_defconfig"
+
+          echo "CONFIG_ZSMALLOC=y" >> "$CONFIG_FILE"
+          sed -i 's/CONFIG_ZRAM=m/CONFIG_ZRAM=y/g' "$CONFIG_FILE"
+
+          sed -i 's/"drivers\/block\/zram\/zram\.ko",//g; s/"mm\/zsmalloc\.ko",//g' "$CONFIG/common/modules.bzl"
+          echo "CONFIG_MODULE_SIG_FORCE=n" >> "$CONFIG_FILE"
+
+          if grep -q "CONFIG_ZSMALLOC=y" "$CONFIG_FILE" && grep -q "CONFIG_ZRAM=y" "$CONFIG_FILE"; then
+            cat >> "$CONFIG_FILE" << 'EOF'
+          CONFIG_CRYPTO_LZ4HC=y
+          CONFIG_CRYPTO_LZ4K=y
+          CONFIG_CRYPTO_LZ4KD=y
+          CONFIG_CRYPTO_842=y
+          CONFIG_CRYPTO_LZ4K_OPLUS=y
+          EOF
+          fi
           
-          patch -p1 --fuzz=3 --forward < hymofs_with_susfs.patch || true
-          echo "CONFIG_KSU_HYMOFS=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_HYMOFS_LSMBPS=y" >> ./arch/arm64/configs/gki_defconfig
-
       - name: Some fixes/patches
         run: |
           cd "$CONFIG/common"
