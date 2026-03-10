@@ -371,6 +371,7 @@ jobs:
       - name: Configure ZRAM options
         run: |
           CONFIG_FILE="$DEFCONFIG"
+          TARGET_FILE="$CONFIG/common/kernel/module/version.c"
 
           # 5.10 需要额外基础配置
           if [ "${{ inputs.kernel_version }}" = "5.10" ]; then
@@ -409,7 +410,7 @@ jobs:
             cat "./zzh/config/zram.config" >> "$CONFIG_FILE"
           fi
 
-          
+          sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
           
       - name: Some fixes/patches
         run: |
