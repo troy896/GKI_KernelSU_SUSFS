@@ -293,7 +293,6 @@ jobs:
           # Copy SUSFS patches
           cp ../zero/android14-6.1/ReSukiSU/patches/50_add_susfs_in_gki-android14-6.1.patch ./common
           cp ../zero/android14-6.1/ReSukiSU/patches/51_enhanced_susfs-android14-6.1.patch ./common
-          cp ../zero/android14-6.1/ReSukiSU/patches/70_ksu_safety-resukisu-6.1.patch ./common
           cp ../zero/android14-6.1/ReSukiSU/patches/60_zeromount-android14-6.1.patch ./common 
 
           if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
@@ -330,8 +329,13 @@ jobs:
             cd ./common
             patch -p1 -F3 --no-backup-if-mismatch < 50_add_susfs_in_gki-android14-6.1.patch || true
             patch -p1 -F3 --no-backup-if-mismatch < 51_enhanced_susfs-android14-6.1.patch || true
-            patch -p1 -F3 --no-backup-if-mismatch < 70_ksu_safety-resukisu-6.1.patch || true
             patch -p1 -F3 --no-backup-if-mismatch < 60_zeromount-android14-6.1.patch || true
+            cd ..
+            cd ./KernelSU
+            cp ../../zero/android14-6.1/ReSukiSU/patches/70_ksu_safety-resukisu-6.1.patch ./
+            patch -p1 -F3 --no-backup-if-mismatch < 70_ksu_safety-resukisu-6.1.patch || true
+            cd ..
+            cd ./common
             echo "Applying SukiSU specific SUSFS patch..."
             cp "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" ./
             cp "../../Action-Build/patches/IPv6_NAT_FIX.patch" ./
