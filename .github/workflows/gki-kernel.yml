@@ -274,11 +274,8 @@ jobs:
           echo "Applying SUSFS patches..."
 
           # Copy SUSFS patches
-          cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch ./common/
-          cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
-          cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
           cp ../zero/android14-6.1/ReSukiSU/patches/51_enhanced_susfs-android14-6.1.patch ./common
-          cp ../zero/android14-6.1/ReSukiSU/patches/60_zeromount-android14-6.1.patch ./common 
+          cp ../zero/android14-6.1/ReSukiSU/patches/50_add_susfs_in_gki-android14-6.1.patch ./common 
 
           if [ "${{ inputs.kernelsu_variant }}" == "Official" ]; then
             echo "Applying SUSFS patches for Official KernelSU..."
@@ -312,10 +309,12 @@ jobs:
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Applying SUSFS patches for SukiSU..."
             cd ./common
-            patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
-            patch -p1 --fuzz=3 < 60_zeromount-android14-6.1.patch || true
+            patch -p1 --fuzz=3 < 50_add_susfs_in_gki-android14-6.1.patch || true
+            patch -p1 --fuzz=3 < 51_enhanced_susfs-android14-6.1.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
+            cp "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" ./
             cp "../../Action-Build/patches/IPv6_NAT_FIX.patch" ./
+            patch -p1 --forward < unicode_bypass_fix_6.1+.patch || true
             patch -p1 --forward < IPv6_NAT_FIX.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
