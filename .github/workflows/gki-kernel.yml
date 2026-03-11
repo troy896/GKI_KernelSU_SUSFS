@@ -291,10 +291,7 @@ jobs:
           echo "Applying SUSFS patches..."
 
           # Copy SUSFS patches
-          cp ../susfs4ksu/kernel_patches/fs/* ./common/fs/
-          cp ../susfs4ksu/kernel_patches/include/linux/* ./common/include/linux/
-          cp ../susfs4ksu/kernel_patches/50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch ./common/
-          # cp ../zero/android14-6.1/ReSukiSU/patches/50_add_susfs_in_gki-android14-6.1.patch ./common
+          cp ../zero/android14-6.1/ReSukiSU/patches/50_add_susfs_in_gki-android14-6.1.patch ./common
           cp ../zero/android14-6.1/ReSukiSU/patches/51_enhanced_susfs-android14-6.1.patch ./common
           cp ../zero/android14-6.1/ReSukiSU/patches/60_zeromount-android14-6.1.patch ./common 
           cp ../zero/android14-6.1/build-helpers/fix-susfs-compat.sh ./common
@@ -331,10 +328,8 @@ jobs:
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Applying SUSFS patches for SukiSU..."
             cd ./common
-            # patch -p1 -F3 --no-backup-if-mismatch < 50_add_susfs_in_gki-android14-6.1.patch || true
-            patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
+            patch -p1 -F3 --no-backup-if-mismatch < 50_add_susfs_in_gki-android14-6.1.patch || true
             patch -p1 -F3 --no-backup-if-mismatch < 51_enhanced_susfs-android14-6.1.patch || true
-            patch -p1 -F3 --no-backup-if-mismatch < 60_zeromount-android14-6.1.patch || true
             cd ..
             cd ./KernelSU
             cp ../../zero/android14-6.1/ReSukiSU/patches/70_ksu_safety-resukisu-6.1.patch ./
@@ -342,6 +337,7 @@ jobs:
             cd ..
             cd ./common
             echo "Applying SukiSU specific SUSFS patch..."
+            patch -p1 -F3 --no-backup-if-mismatch < 60_zeromount-android14-6.1.patch || true
             cp "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" ./
             cp "../../Action-Build/patches/IPv6_NAT_FIX.patch" ./
             patch -p1 --forward < unicode_bypass_fix_6.1+.patch || true
