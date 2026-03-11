@@ -182,6 +182,7 @@ jobs:
           # Next Fix Patch
           git clone https://github.com/zzh20188/GKI_KernelSU_SUSFS.git zzh
           git clone https://github.com/Numbersf/Action-Build.git -b "ReSukiSU"
+          git clone https://github.com/Enginex0/Super-Builders.git zero
 
       - name: Initialize and synchronize kernel source code
         run: |
