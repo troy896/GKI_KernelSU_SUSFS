@@ -456,6 +456,7 @@ jobs:
           echo "CONFIG_IP_SET_LIST_SET=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_ZRAM_WRITEBACK=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_ZSMALLOC=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
           
           # Remove check_defconfig
           perl -i -pe 's/^(\s*)return 1$/$1return 0/g if /if missing_symbols:/../return 1/' build/kernel/abi/check_buildtime_symbol_protection.py
