@@ -375,7 +375,6 @@ jobs:
       - name: Apply a patch to hide a certain feature.
         run: |
           echo "Changed to configuration directory: $CONFIG..."
-          TARGET_FILE="$CONFIG/kernel/common/kernel/module/version.c"
           cd "$CONFIG/common"
           # Apply additional patch
           if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
@@ -385,8 +384,6 @@ jobs:
             cp ../../kernel_patches/69_hide_stuff.patch ./
             patch -p1 -F 3 < 69_hide_stuff.patch
           fi
-          cd ..
-          sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
           
       - name: Add SUSFS configuration settings
         run: |
