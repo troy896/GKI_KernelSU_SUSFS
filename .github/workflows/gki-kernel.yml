@@ -345,7 +345,7 @@ jobs:
           ADD_PTRACE="false"
           ADD_PERF="true"
           KERNEL_VER="${{ inputs.kernel_version }}"
-          curl -LSs https://raw.githubusercontent.com/Enginex0/Super-Builders/refs/heads/main/android12-5.10/build-helpers/apply-kernel-patches.sh
+          wget https://raw.githubusercontent.com/Enginex0/Super-Builders/refs/heads/main/android12-5.10/build-helpers/apply-kernel-patches.sh
           bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
           
       - name: Apply a patch to hide a certain feature.
