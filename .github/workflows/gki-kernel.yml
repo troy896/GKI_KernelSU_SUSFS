@@ -312,12 +312,12 @@ jobs:
             cd ./common
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             echo "Applying nomount"
-            curl -LSs "https://raw.githubusercontent.com/maxsteeel/NoMountFS/master/setup.sh" | bash -
+           # curl -LSs "https://raw.githubusercontent.com/maxsteeel/NoMountFS/master/setup.sh" | bash -
             echo "Applying SukiSU specific SUSFS patch..."
-            cp "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" ./
-            cp "../../Action-Build/patches/IPv6_NAT_FIX.patch" ./
-            patch -p1 --forward < unicode_bypass_fix_6.1+.patch || true
-            patch -p1 --forward < IPv6_NAT_FIX.patch || true
+           # cp "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" ./
+           # cp "../../Action-Build/patches/IPv6_NAT_FIX.patch" ./
+           # patch -p1 --forward < unicode_bypass_fix_6.1+.patch || true
+           # patch -p1 --forward < IPv6_NAT_FIX.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
