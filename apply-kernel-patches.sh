@@ -55,7 +55,6 @@ else
     "$COMMON/clear_page_16bytes_align.patch" | patch -p1 -F3 --forward || true
 fi
 
-apply "$COMMON/re_write_limitation_scaling_min_freq.patch"
 apply "$COMMON/adjust_cpu_scan_order.patch"
 apply "$COMMON/avoid_extra_s2idle_wake_attempts.patch"
 apply "$COMMON/disable_cache_hot_buddy.patch"
@@ -65,7 +64,6 @@ apply "$COMMON/increase_sk_mem_packets.patch"
 apply "$COMMON/reduce_pci_pme_wakeups.patch"
 apply "$COMMON/silence_irq_cpu_logspam.patch"
 apply "$COMMON/silence_system_logspam.patch"
-apply "$COMMON/use_unlikely_wrap_cpufreq.patch"
 
 if [ -f "$COMMON/unicode_bypass_fix_6.1+.patch" ]; then
   if [ "$MAJOR" -gt 6 ] || { [ "$MAJOR" -eq 6 ] && [ "$MINOR" -ge 1 ]; }; then
