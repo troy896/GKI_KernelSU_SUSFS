@@ -492,7 +492,7 @@ jobs:
           # If you need to change the build time, please modify the following variable CURRENT_TIME to the example string below, such as: CURRENT_TIME="Sat Jun 07 06:29:29 UTC 2025"
           # This string represents UTC time: June 7, 2025, 06:29:29. "Sat" is an abbreviation for Saturday, and "Jun" is an abbreviation for June.
           # If you want to use Beijing time, it should fi: CURRENT_TIME="Sat Jun 07 14:29:29 CST 2025"
-          CURRENT_TIME="Fri Jan 9 16:33:46 UTC 2026"
+          CURRENT_TIME="Fri Jan  9 16:33:46 UTC 2026"
 
           echo "CURRENT_TIME=$CURRENT_TIME"
           perl -pi -e "s{UTS_VERSION=\"\\\$\(echo \\\$UTS_VERSION \\\$CONFIG_FLAGS \\\$TIMESTAMP \\| cut -b -\\\$UTS_LEN\)\"}{UTS_VERSION=\"#1 SMP PREEMPT $CURRENT_TIME\"}" ./common/scripts/mkcompile_h
