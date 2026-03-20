@@ -311,13 +311,7 @@ jobs:
             echo "Applying SUSFS patches for SukiSU..."
             cd ./common
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
-            echo "Applying nomount"
-           # curl -LSs "https://raw.githubusercontent.com/maxsteeel/NoMountFS/master/setup.sh" | bash -
             echo "Applying SukiSU specific SUSFS patch..."
-           # cp "../../Action-Build/patches/unicode_bypass_fix_6.1+.patch" ./
-           # cp "../../Action-Build/patches/IPv6_NAT_FIX.patch" ./
-           # patch -p1 --forward < unicode_bypass_fix_6.1+.patch || true
-           # patch -p1 --forward < IPv6_NAT_FIX.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
@@ -335,6 +329,16 @@ jobs:
           KERNEL_VER="${{ inputs.kernel_version }}"
           wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/GKI/apply-kernel-patches.sh
           bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
+
+      - name: Apply Module Check Bypass
+        run: |
+          KERNEL_VER="${{ inputs.kernel_version }}"
+          if [[ "$KERNEL_VER" == "6.1" || "$KERNEL_VER" == "6.6" || "$KERNEL_VER" == "6.12" ]]; then
+            TARGET_FILE="$CONFIG/common/kernel/module/version.c"
+          else
+            TARGET_FILE="$CONFIG/common/kernel/module.c"
+          fi
+          sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
           
       - name: Apply a patch to hide a certain feature.
         run: |
@@ -468,7 +472,8 @@ jobs:
           max_attempts: 3
           retry_on: timeout
           command: |
-            set -ex
+            set -e
+            set -x
             cd "$CONFIG"
             
             sed -i 's/BUILD_SYSTEM_DLKM=1/BUILD_SYSTEM_DLKM=0/' ./common/build.config.gki.aarch64
@@ -502,10 +507,6 @@ jobs:
         run: |
           if [ "${{ inputs.kernel_version }}" != "6.6" ]; then
             echo "Patching Image file..."
-            
-           # cd SukiSU_patch/
-           # git checkout 83aa64b7548890bb1f2eff6c990c03a1802df27b
-           # cd ..
 
             cp -r SukiSU_patch/kpm/patch_linux "$CONFIG/bazel-bin/common/kernel_aarch64/patch"
             
@@ -646,7 +647,7 @@ jobs:
           cp ./boot-lz4.img ../${{ inputs.android_version }}-${{ inputs.kernel_version }}.${{ inputs.sub_level }}-${{ inputs.os_patch_level }}-boot-lz4.img
 
       - name: Uploaded compiled assets
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: ${{ inputs.kernelsu_variant }}_kernel-${{ env.CONFIG }}
           path: |
