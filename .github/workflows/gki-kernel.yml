@@ -376,7 +376,7 @@ jobs:
           ADD_PTRACE="false"
           ADD_PERF="true"
           KERNEL_VER="${{ inputs.kernel_version }}"
-          wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/GKI/apply-kernel-patches.sh
+          wget https://raw.githubusercontent.com/136nethuwa/GKI_KernelSU_SUSFS/refs/heads/GKI/apply-kernel-patches.sh
           bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
 
       - name: Apply Module Check Bypass
