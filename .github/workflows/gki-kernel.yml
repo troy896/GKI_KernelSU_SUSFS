@@ -312,6 +312,8 @@ jobs:
             cd ./common
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
+            wget https://raw.githubusercontent.com/Enginex0/Super-Builders/refs/heads/main/android14-6.1/ReSukiSU/patches/60_zeromount-android14-6.1.patch
+            patch -p1 -F3 --no-backup-if-mismatch < 60_zeromount-android14-6.1.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
