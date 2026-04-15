@@ -269,6 +269,7 @@ jobs:
       - name: Install SUSFS patch for KernelSU variant
         run: |
           echo "Changed to configuration directory: $CONFIG..."
+          FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}"
           cd "$CONFIG"
 
           echo "Applying SUSFS patches..."
@@ -309,30 +310,21 @@ jobs:
             patch -p1 < fix.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Applying SUSFS patches for SukiSU..."
+            fake_patched=0
             cd ./common
-            patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
-            echo "Applying SukiSU specific SUSFS patch..."
-          elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
-            echo "Applying SUSFS patches for YukiSU..."
-            cd ./KernelSU
-            echo "Applying YukiSU specific SUSFS patch..."
-          else
-            echo "Invalid KernelSU variant selected!"
-            exit 1
-          fi
-          
-      - name: 一些修复补丁
-        run: |
-          cd "$CONFIG/common"
-          FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}"
-          # Android 14 - 6.1 修复
+            # Android 14 - 6.1 修复
             if [[ "${{ inputs.android_version }}" == "android14" && "${{ inputs.kernel_version }}" == "6.1" ]]; then
-              if ! grep -qF '#include <linux/dma-buf.h>' ./fs/proc/base.c; then
+              if ! grep -qxF $'\tif (!vma_pages(vma))' ./fs/proc/task_mmu.c; then
+                echo "未找到 vma_pages，正在进行补丁修复"
+                fake_patched=1
+              fi
+              if ! grep -qxF '#include <linux/dma-buf.h>' ./fs/proc/base.c; then
+                echo "未找到 #include <linux/dma-buf.h>，添加缺失的头文件"
                 sed -i '/#include <linux\/cpufreq_times.h>/a #include <linux\/dma-buf.h>' ./fs/proc/base.c
               fi
-              if grep -q 'susfs_is_current_proc_umounted' ./fs/proc/base.c && ! grep -qF '#include <linux/susfs.h>' ./fs/proc/base.c; then
-                sed -i '/#include <linux\/dma-buf.h>/a #include <linux\/susfs.h>' ./fs/proc/base.c
-              fi
+              #if grep -q 'susfs_is_current_proc_umounted' ./fs/proc/base.c && ! grep -qF '#include <linux/susfs.h>' ./fs/proc/base.c; then
+              #  sed -i '/#include <linux\/dma-buf.h>/a #include <linux\/susfs.h>' ./fs/proc/base.c
+              #fi
               # 修复 6.1 LTS: SUSFS 补丁在 namespace.c 头部 hunk 因上下文不匹配而失败，
               # 导致函数体中的 SUSFS 符号（DEFAULT_KSU_MNT_ID 等）未声明
               if grep -q 'DEFAULT_KSU_MNT_ID\|susfs_mnt_id_ida' ./fs/namespace.c && ! grep -qF '#include <linux/susfs_def.h>' ./fs/namespace.c; then
@@ -343,6 +335,21 @@ jobs:
                 fi
               fi
             fi
+            patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
+            echo "Applying SukiSU specific SUSFS patch..."
+            if [ "$fake_patched" = 1 ]; then
+              if grep -q 'goto[[:space:]]\+show_pad;' ./fs/proc/task_mmu.c; then
+                  sed -i -e 's/goto show_pad;/return 0;/' ./fs/proc/task_mmu.c
+              fi
+            fi
+          elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
+            echo "Applying SUSFS patches for YukiSU..."
+            cd ./KernelSU
+            echo "Applying YukiSU specific SUSFS patch..."
+          else
+            echo "Invalid KernelSU variant selected!"
+            exit 1
+          fi
           
       - name: Some fixes/patches
         run: |
@@ -352,8 +359,8 @@ jobs:
           KERNEL_VER="${{ inputs.kernel_version }}"
           wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/bbrv3.patch
           patch -p1 --fuzz=3 < bbrv3.patch || true
-          cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
-          bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
+          #cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
+          #bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
 
       - name: Apply Module Check Bypass
         run: |
@@ -362,7 +369,7 @@ jobs:
           else
             TARGET_FILE="$CONFIG/common/kernel/module.c"
           fi
-          sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
+          # sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
           
       - name: Apply a patch to hide a certain feature.
         run: |
@@ -470,7 +477,7 @@ jobs:
           echo "CONFIG_KSU_FULL_NAME_FORMAT=%TAG_NAME%-%BRANCH_NAME%-%COMMIT_SHA%@%REPO_NAME%KSU-%KSU_VERSION%" >> ./common/arch/arm64/configs/gki_defconfig
           
           # Remove check_defconfig
-          perl -i -pe 's/^(\s*)return 1$/$1return 0/g if /if missing_symbols:/../return 1/' build/kernel/abi/check_buildtime_symbol_protection.py
+          # perl -i -pe 's/^(\s*)return 1$/$1return 0/g if /if missing_symbols:/../return 1/' build/kernel/abi/check_buildtime_symbol_protection.py
           sed -i 's/check_defconfig//' ./common/build.config.gki
 
       - name: Configure kernel name
