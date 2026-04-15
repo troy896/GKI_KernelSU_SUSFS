@@ -383,6 +383,35 @@ jobs:
             cp ../../kernel_patches/69_hide_stuff.patch ./
             patch -p1 -F 3 < 69_hide_stuff.patch
           fi
+
+      - name: Apply DROID_SPACES
+        if: ${{ inputs.use_hymofs == 'true' }}
+        run: |
+          cd "$CONFIG/common"
+          # 检查原始的 sysv 结构体定义并修改
+          sed -i 's/struct sysv_sem\s*sysvsem;/\/\/ struct sysv_sem sysvsem;/g' include/linux/sched.h
+          sed -i 's/struct sysv_shm\s*sysvshm;/\/\/ struct sysv_shm sysvshm;/g' include/linux/sched.h
+          # 检查 KABI 槽位空闲并修改
+          if grep -q "ANDROID_KABI_USE(1," include/linux/sched.h; then
+            echo "✅ 检测到 USE(1)，使用槽位 6,7,8"
+            sed -i -e '/ANDROID_KABI_RESERVE(6);/{N;N;s|ANDROID_KABI_RESERVE(6);\n\s*ANDROID_KABI_RESERVE(7);\n\s*ANDROID_KABI_RESERVE(8);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(6, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(7); ANDROID_KABI_RESERVE(8), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(6);\n\tANDROID_KABI_RESERVE(7);\n\tANDROID_KABI_RESERVE(8);\n#endif|;}' include/linux/sched.h
+          elif grep -q "ANDROID_KABI_RESERVE(1);" include/linux/sched.h; then
+            echo "✅ 检测到 RESERVE(1)，使用槽位 1,2,3"
+            sed -i -e '/ANDROID_KABI_RESERVE(1);/{N;N;s|ANDROID_KABI_RESERVE(1);\n\s*ANDROID_KABI_RESERVE(2);\n\s*ANDROID_KABI_RESERVE(3);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(1, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(2); ANDROID_KABI_RESERVE(3), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(1);\n\tANDROID_KABI_RESERVE(2);\n\tANDROID_KABI_RESERVE(3);\n#endif|;}' include/linux/sched.h
+          elif grep -q "ANDROID_KABI_RESERVE(3);" include/linux/sched.h; then
+            echo "✅ fallback，使用槽位 3,4,5"
+            sed -i -e '/ANDROID_KABI_RESERVE(3);/{N;N;s|ANDROID_KABI_RESERVE(3);\n\s*ANDROID_KABI_RESERVE(4);\n\s*ANDROID_KABI_RESERVE(5);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(3, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(4); ANDROID_KABI_RESERVE(5), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(3);\n\tANDROID_KABI_RESERVE(4);\n\tANDROID_KABI_RESERVE(5);\n#endif|;}' include/linux/sched.h
+          else
+            echo "❌ 无法通过上下文精准匹配 KABI 槽位"
+            exit 1
+          fi
+          echo "CONFIG_SYSVIPC=y" >> "./arch/arm64/configs/gki_defconfig"
+          echo "CONFIG_DEVTMPFS=y" >> "./arch/arm64/configs/gki_defconfig"
+          echo "CONFIG_PID_NS=y" >> "./arch/arm64/configs/gki_defconfig"
+          echo "CONFIG_POSIX_MQUEUE=y" >> "./arch/arm64/configs/gki_defconfig"
+          echo "CONFIG_NETFILTER_XT_TARGET_REJECT=y" >> "./arch/arm64/configs/gki_defconfig"
+          echo "CONFIG_NETFILTER_XT_TARGET_LOG=y" >> "./arch/arm64/configs/gki_defconfig"
+          echo "CONFIG_NETFILTER_XT_MATCH_RECENT=y" >> "./arch/arm64/configs/gki_defconfig"
           
       - name: Add SUSFS configuration settings
         run: |
