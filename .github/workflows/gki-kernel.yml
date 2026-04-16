@@ -312,11 +312,13 @@ jobs:
             echo "Applying SUSFS patches for SukiSU..."
             cd ./common
             cp ../../duchamp/kernel-patches/susfs/* ./
-            patch -p1 --fuzz=3 < fix-statfs-crc-mismatch-susfs.patch || true
             patch -p1 --fuzz=3 < fs_proc_base.c-fix-k6.1.patch || true
             patch -p1 --fuzz=3 < fs_namespace.patch || true
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
+            cd ..
+            wget https://raw.githubusercontent.com/Mafiadan6/MountZero/refs/heads/main/scripts/patch_kernel.sh
+            bash patch_kernel.sh ./
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
