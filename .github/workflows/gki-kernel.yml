@@ -332,6 +332,7 @@ jobs:
           fi
           
       - name: nomount
+        if: ${{ inputs.use_hymofs }}
         run: |
           cd "$CONFIG"
           git clone https://github.com/Mafiadan6/MountZero.git mountzero
