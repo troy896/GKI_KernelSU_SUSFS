@@ -182,7 +182,7 @@ jobs:
           # Next Fix Patch
           git clone https://github.com/zzh20188/GKI_KernelSU_SUSFS.git zzh
           git clone https://github.com/Numbersf/Action-Build.git -b "ReSukiSU"
-          git clone https://github.com/Enginex0/Super-Builders.git zero
+          git clone https://github.com/ahmed-alnassif/GKI-Duchamp.git duchamp
 
       - name: Initialize and synchronize kernel source code
         run: |
@@ -310,35 +310,13 @@ jobs:
             patch -p1 < fix.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Applying SUSFS patches for SukiSU..."
-            fake_patched=0
             cd ./common
+            cp ../../duchamp/kernel-patches/susfs/* ./
+            patch -p1 --fuzz=3 < fix-statfs-crc-mismatch-susfs.patch || true
+            patch -p1 --fuzz=3 < fs_proc_base.c-fix-k6.1.patch || true
+            patch -p1 --fuzz=3 < fs_namespace.patch || true
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
-            if ! grep -qxF $'\tif (!vma_pages(vma))' ./fs/proc/task_mmu.c; then
-              echo "未找到 vma_pages，正在进行补丁修复"
-              fake_patched=1
-            fi
-            if ! grep -qxF '#include <linux/dma-buf.h>' ./fs/proc/base.c; then
-              echo "未找到 #include <linux/dma-buf.h>，添加缺失的头文件"
-              sed -i '/#include <linux\/cpufreq_times.h>/a #include <linux\/dma-buf.h>' ./fs/proc/base.c
-            fi
-            if grep -q 'susfs_is_current_proc_umounted' ./fs/proc/base.c && ! grep -qF '#include <linux/susfs.h>' ./fs/proc/base.c; then
-                sed -i '/#include <linux\/dma-buf.h>/a #include <linux\/susfs.h>' ./fs/proc/base.c
-            fi
-            # 修复 6.1 LTS: SUSFS 补丁在 namespace.c 头部 hunk 因上下文不匹配而失败，
-            # 导致函数体中的 SUSFS 符号（DEFAULT_KSU_MNT_ID 等）未声明
-            if grep -q 'DEFAULT_KSU_MNT_ID\|susfs_mnt_id_ida' ./fs/namespace.c && ! grep -qF '#include <linux/susfs_def.h>' ./fs/namespace.c; then
-              echo "检测到 namespace.c 缺少 susfs_def.h，注入声明..."
-              sed -i '/#include <linux\/mnt_idmapping.h>/a #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT\n#include <linux\/susfs_def.h>\n#endif' ./fs/namespace.c
-              if ! grep -q 'extern bool susfs_is_current_ksu_domain' ./fs/namespace.c; then
-                sed -i '/#include "internal.h"/a \\n#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT\nextern bool susfs_is_current_ksu_domain(void);\nextern bool susfs_is_sdcard_android_data_decrypted __read_mostly;\n\n#define CL_COPY_MNT_NS BIT(25)\n\nstatic DEFINE_IDA(susfs_mnt_id_ida);\nstatic DEFINE_IDA(susfs_mnt_group_ida);\n\n#endif' ./fs/namespace.c
-              fi
-            fi
-            if [ "$fake_patched" = 1 ]; then
-              if grep -q 'goto[[:space:]]\+show_pad;' ./fs/proc/task_mmu.c; then
-                  sed -i -e 's/goto show_pad;/return 0;/' ./fs/proc/task_mmu.c
-              fi
-            fi
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
@@ -354,61 +332,29 @@ jobs:
           ADD_PTRACE="false"
           ADD_PERF="true"
           KERNEL_VER="${{ inputs.kernel_version }}"
-          wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/bbrv3.patch
-          patch -p1 --fuzz=3 < bbrv3.patch || true
-          # cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
-          # bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
+          # wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/bbrv3.patch
+          wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/bbr/bbrv3-a14-6.1.patch
+          patch -p1 --fuzz=3 < bbrv3-a14-6.1.patch || true
+          cp "$GITHUB_WORKSPACE/unicode_bypass_fix_6.1.patch" ./
+          patch -p1 --fuzz=3 < unicode_bypass_fix_6.1.patch || true
+          cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
+          bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
 
-      - name: Apply Module Check Bypass
+      - name: 配置 ZRAM LZ4 补丁栈
         run: |
-          if [[ "${{ inputs.kernel_version }}" == "6.1" || "${{ inputs.kernel_version }}" == "6.6" || "${{ inputs.kernel_version }}" == "6.12" ]]; then
-            TARGET_FILE="$CONFIG/common/kernel/module/version.c"
-          else
-            TARGET_FILE="$CONFIG/common/kernel/module.c"
-          fi
-          sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
-          
-      - name: Apply a patch to hide a certain feature.
-        run: |
-          echo "Changed to configuration directory: $CONFIG..."
+          # 第一阶段：升级 LZ4 到 1.10.0 并添加 ARM64 NEON 加速
           cd "$CONFIG/common"
-          # Apply additional patch
-          if [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-          cp ../../SukiSU_patch/69_hide_stuff.patch ./
-          patch -p1 -F 3 < 69_hide_stuff.patch
-          else
-            cp ../../kernel_patches/69_hide_stuff.patch ./
-            patch -p1 -F 3 < 69_hide_stuff.patch
-          fi
+          echo "升级 LZ4..."
+          rm -f lib/lz4/lz4_compress.c lib/lz4/lz4_decompress.c lib/lz4/lz4defs.h lib/lz4/lz4hc_compress.c
 
-      - name: Apply DROID_SPACES
-        if: ${{ github.event.inputs.use_hymofs == 'true' }}
-        run: |
-          cd "$CONFIG/common"
-          # 检查原始的 sysv 结构体定义并修改
-          sed -i 's/struct sysv_sem\s*sysvsem;/\/\/ struct sysv_sem sysvsem;/g' include/linux/sched.h
-          sed -i 's/struct sysv_shm\s*sysvshm;/\/\/ struct sysv_shm sysvshm;/g' include/linux/sched.h
-          # 检查 KABI 槽位空闲并修改
-          if grep -q "ANDROID_KABI_USE(1," include/linux/sched.h; then
-            echo "✅ 检测到 USE(1)，使用槽位 6,7,8"
-            sed -i -e '/ANDROID_KABI_RESERVE(6);/{N;N;s|ANDROID_KABI_RESERVE(6);\n\s*ANDROID_KABI_RESERVE(7);\n\s*ANDROID_KABI_RESERVE(8);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(6, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(7); ANDROID_KABI_RESERVE(8), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(6);\n\tANDROID_KABI_RESERVE(7);\n\tANDROID_KABI_RESERVE(8);\n#endif|;}' include/linux/sched.h
-          elif grep -q "ANDROID_KABI_RESERVE(1);" include/linux/sched.h; then
-            echo "✅ 检测到 RESERVE(1)，使用槽位 1,2,3"
-            sed -i -e '/ANDROID_KABI_RESERVE(1);/{N;N;s|ANDROID_KABI_RESERVE(1);\n\s*ANDROID_KABI_RESERVE(2);\n\s*ANDROID_KABI_RESERVE(3);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(1, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(2); ANDROID_KABI_RESERVE(3), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(1);\n\tANDROID_KABI_RESERVE(2);\n\tANDROID_KABI_RESERVE(3);\n#endif|;}' include/linux/sched.h
-          elif grep -q "ANDROID_KABI_RESERVE(3);" include/linux/sched.h; then
-            echo "✅ fallback，使用槽位 3,4,5"
-            sed -i -e '/ANDROID_KABI_RESERVE(3);/{N;N;s|ANDROID_KABI_RESERVE(3);\n\s*ANDROID_KABI_RESERVE(4);\n\s*ANDROID_KABI_RESERVE(5);|#ifdef CONFIG_SYSVIPC\n\tANDROID_KABI_USE(3, struct sysv_sem sysvsem);\n\t_ANDROID_KABI_REPLACE(ANDROID_KABI_RESERVE(4); ANDROID_KABI_RESERVE(5), struct sysv_shm sysvshm);\n#else\n\tANDROID_KABI_RESERVE(3);\n\tANDROID_KABI_RESERVE(4);\n\tANDROID_KABI_RESERVE(5);\n#endif|;}' include/linux/sched.h
-          else
-            echo "❌ 无法通过上下文精准匹配 KABI 槽位"
-            exit 1
+          cp -r ../../zzh/zram/lz4/* ./lib/lz4/
+          cp -r ../../zzh/zram/include/linux/* ./include/linux/
+          cp ../../zzh/zram/apply_lz4_neon.sh ./apply_lz4_neon.sh
+          bash apply_lz4_neon.sh
+
+          if [ -f "fs/f2fs/Makefile" ] && ! grep -qF "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" "fs/f2fs/Makefile"; then
+            echo "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" >> "fs/f2fs/Makefile"
           fi
-          echo "CONFIG_SYSVIPC=y" >> "./arch/arm64/configs/gki_defconfig"
-          echo "CONFIG_DEVTMPFS=y" >> "./arch/arm64/configs/gki_defconfig"
-          echo "CONFIG_PID_NS=y" >> "./arch/arm64/configs/gki_defconfig"
-          echo "CONFIG_POSIX_MQUEUE=y" >> "./arch/arm64/configs/gki_defconfig"
-          echo "CONFIG_NETFILTER_XT_TARGET_REJECT=y" >> "./arch/arm64/configs/gki_defconfig"
-          echo "CONFIG_NETFILTER_XT_TARGET_LOG=y" >> "./arch/arm64/configs/gki_defconfig"
-          echo "CONFIG_NETFILTER_XT_MATCH_RECENT=y" >> "./arch/arm64/configs/gki_defconfig"
           
       - name: Add SUSFS configuration settings
         run: |
