@@ -333,8 +333,10 @@ jobs:
           
       - name: nomount
         run: |
-          wget https://raw.githubusercontent.com/Mafiadan6/MountZero/refs/heads/main/scripts/patch_kernel.sh
-          bash patch_kernel.sh "$CONFIG/common"
+          cd "$CONFIG"
+          git clone https://github.com/Mafiadan6/MountZero.git mountzero
+          cd mountzero
+          bash ./scripts/patch_kernel.sh "$CONFIG/common"
           
       - name: Some fixes/patches
         run: |
