@@ -322,9 +322,6 @@ jobs:
                 sed -i '/#include "internal.h"/a \\n#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT\nextern bool susfs_is_current_ksu_domain(void);\nextern bool susfs_is_sdcard_android_data_decrypted __read_mostly;\n\n#define CL_COPY_MNT_NS BIT(25)\n\nstatic DEFINE_IDA(susfs_mnt_id_ida);\nstatic DEFINE_IDA(susfs_mnt_group_ida);\n\n#endif' ./fs/namespace.c
               fi
             fi
-            cd ..
-            wget https://raw.githubusercontent.com/Mafiadan6/MountZero/refs/heads/main/scripts/patch_kernel.sh
-            bash patch_kernel.sh ./
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
@@ -333,6 +330,11 @@ jobs:
             echo "Invalid KernelSU variant selected!"
             exit 1
           fi
+          
+      - name: nomount
+        run: |
+          wget https://raw.githubusercontent.com/Mafiadan6/MountZero/refs/heads/main/scripts/patch_kernel.sh
+          bash patch_kernel.sh "$CONFIG"
           
       - name: Some fixes/patches
         run: |
