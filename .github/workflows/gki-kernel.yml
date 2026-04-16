@@ -336,7 +336,7 @@ jobs:
           cd "$CONFIG"
           git clone https://github.com/Mafiadan6/MountZero.git mountzero
           cd mountzero
-          bash ./scripts/patch_kernel.sh "$CONFIG/common"
+          bash ./scripts/patch_kernel.sh "$GITHUB_WORKSPACE/$CONFIG/common"
           
       - name: Some fixes/patches
         run: |
