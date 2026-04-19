@@ -315,6 +315,8 @@ jobs:
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             # patch -p1 --fuzz=3 < fs_proc_base.c-fix-k6.1.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
+            wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/wild/susfs_fix_patches/v2.1.0/a14-6.1/base.c.patch
+            patch -p1 --fuzz=3 < base.c.patch || true
             patch -p1 --fuzz=3 < fs_namespace.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
