@@ -1,24 +1,26 @@
-From 8711e53758b35b1440c3a0f021d10b2a29c9901e Mon Sep 17 00:00:00 2001
+From 44d1d0e0e0a94ff05378d7b6be7708b71f9c8d35 Mon Sep 17 00:00:00 2001
 From: troy896 <troy896@gmail.com>
-Date: Sun, 19 Apr 2026 23:37:39 -0500
-Subject: [PATCH] add mount
+Date: Mon, 20 Apr 2026 00:22:52 -0500
+Subject: [PATCH] Add conditional mountzero_vfs_getname_hook call
 
 ---
- fs/namei.c | 5 ++++
- 1 file changed, 5 insertions(+)
+ fs/namei.c | 7 ++++++-
+ 1 file changed, 6 insertions(+), 1 deletion(-)
 
 diff --git a/fs/namei.c b/fs/namei.c
-index 38b2be5..8aec06a 100644
+index 38b2be5..d565dd0 100644
 --- a/fs/namei.c
 +++ b/fs/namei.c
-@@ -142,6 +142,10 @@ getname_flags(const char __user *filename, int flags, int *empty)
+@@ -141,7 +141,12 @@ getname_flags(const char __user *filename, int flags, int *empty)
+ 	int len;
  
  	result = audit_reusename(filename);
- 	if (result) {
-+	#ifdef CONFIG_MOUNTZERO
+-	if (result)
++	if (result) {
++		#ifdef CONFIG_MOUNTZERO
 +		#include <linux/mountzero_vfs.h>
-+			result = mountzero_vfs_getname_hook(result);
-+	#endif
++		result = mountzero_vfs_getname_hook(result);
++		#endif
 +	}
  		return result;
  
