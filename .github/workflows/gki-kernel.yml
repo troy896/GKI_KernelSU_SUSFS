@@ -333,6 +333,7 @@ jobs:
           wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/mount.patch
           patch -p1 --fuzz=3 < mount.patch
           echo "CONFIG_MOUNTZERO=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "KBUILD_CFLAGS += -Wno-unused-variable"  >> Makefile
           
       - name: Some fixes/patches
         run: |
