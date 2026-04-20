@@ -327,7 +327,7 @@ jobs:
       - name: nomount
         if: ${{ inputs.use_hymofs }}
         run: |
-          git clone https://github.com/Mafiadan6/MountZero.git mountzero
+          git clone https://github.com/troy896/MountZero.git mountzero
           cd "$CONFIG/common"
           bash "$GITHUB_WORKSPACE/mountzero/project/integrate.sh"
           wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/mount.patch
