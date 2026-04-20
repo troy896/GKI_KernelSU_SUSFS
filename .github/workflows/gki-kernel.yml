@@ -336,10 +336,10 @@ jobs:
       - name: nomount
         if: ${{ inputs.use_hymofs }}
         run: |
-          cd "$CONFIG"
           git clone https://github.com/Mafiadan6/MountZero.git mountzero
-          cd mountzero
-          bash ./scripts/patch_kernel.sh "$GITHUB_WORKSPACE/$CONFIG/common"
+          cd "$CONFIG/common"
+          bash "$GITHUB_WORKSPACE/mountzero/project/integrate.sh"
+          echo "CONFIG_MOUNTZERO=y" >> ./arch/arm64/configs/gki_defconfig
           
       - name: Some fixes/patches
         run: |
