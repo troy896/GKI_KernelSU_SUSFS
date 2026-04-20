@@ -330,6 +330,8 @@ jobs:
           git clone https://github.com/Mafiadan6/MountZero.git mountzero
           cd "$CONFIG/common"
           bash "$GITHUB_WORKSPACE/mountzero/project/integrate.sh"
+          wget https://github.com/troy896/GKI_KernelSU_SUSFS/commit/8711e53758b35b1440c3a0f021d10b2a29c9901e.patch
+          patch -p1 --fuzz=3 < 8711e53758b35b1440c3a0f021d10b2a29c9901e.patch
           echo "CONFIG_MOUNTZERO=y" >> ./arch/arm64/configs/gki_defconfig
           
       - name: Some fixes/patches
@@ -347,6 +349,7 @@ jobs:
           # bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
 
       - name: 配置 ZRAM LZ4 补丁栈
+        if: ${{ inputs.use_zram }}
         run: |
           # 第一阶段：升级 LZ4 到 1.10.0 并添加 ARM64 NEON 加速
           cd "$CONFIG/common"
