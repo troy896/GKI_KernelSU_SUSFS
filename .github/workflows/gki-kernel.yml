@@ -465,7 +465,7 @@ jobs:
           echo "CONFIG_LRU_GEN_ENABLED=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_TOOLKIT_SUPPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_KSU_FULL_NAME_FORMAT=%TAG_NAME%-%BRANCH_NAME%-%COMMIT_SHA%@%REPO_NAME%KSU-%KSU_VERSION%" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_F2FS_IOSTAT=y" >> ./common/arch/arm64/configs/gki_defconfig
           
           # Remove check_defconfig
           perl -i -pe 's/^(\s*)return 1$/$1return 0/g if /if missing_symbols:/../return 1/' build/kernel/abi/check_buildtime_symbol_protection.py
