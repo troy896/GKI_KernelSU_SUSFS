@@ -327,12 +327,12 @@ jobs:
         if: ${{ inputs.use_hymofs }}
         run: |
           # git clone https://github.com/troy896/MountZero.git mountzero
-          cd "$CONFIG/common"
+          cd "$CONFIG"
           curl -LSs "https://raw.githubusercontent.com/maxsteeel/NoMountFS/master/setup.sh" | bash -
           # bash "$GITHUB_WORKSPACE/mountzero/project/integrate.sh"
           # wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/mount.patch
           # patch -p1 --fuzz=3 < mount.patch
-          echo "CONFIG_NOMOUNT_FS=y" >> ./arch/arm64/configs/gki_defconfig
+          echo "CONFIG_NOMOUNT_FS=y" >> ./common/arch/arm64/configs/gki_defconfig
           # echo "KBUILD_CFLAGS += -Wno-unused-variable"  >> Makefile
           
       - name: Some fixes/patches
