@@ -183,8 +183,6 @@ jobs:
           git clone https://github.com/zzh20188/GKI_KernelSU_SUSFS.git zzh
           git clone https://github.com/Numbersf/Action-Build.git -b "ReSukiSU"
           git clone https://github.com/ahmed-alnassif/GKI-Duchamp.git duchamp
-          cd susfs4ksu
-          git checkout 6cbc44c6f9263c021e75c3ea451af2d986765582
 
       - name: Initialize and synchronize kernel source code
         run: |
@@ -313,7 +311,6 @@ jobs:
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Applying SUSFS patches for SukiSU..."
             cd ./common
-            cp ../../duchamp/kernel-patches/susfs/* ./
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             # patch -p1 --fuzz=3 < fs_proc_base.c-fix-k6.1.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
@@ -329,13 +326,14 @@ jobs:
       - name: nomount
         if: ${{ inputs.use_hymofs }}
         run: |
-          git clone https://github.com/troy896/MountZero.git mountzero
+          # git clone https://github.com/troy896/MountZero.git mountzero
           cd "$CONFIG/common"
-          bash "$GITHUB_WORKSPACE/mountzero/project/integrate.sh"
-          wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/mount.patch
-          patch -p1 --fuzz=3 < mount.patch
-          echo "CONFIG_MOUNTZERO=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "KBUILD_CFLAGS += -Wno-unused-variable"  >> Makefile
+          curl -LSs "https://raw.githubusercontent.com/maxsteeel/NoMountFS/master/setup.sh" | bash -
+          # bash "$GITHUB_WORKSPACE/mountzero/project/integrate.sh"
+          # wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/mount.patch
+          # patch -p1 --fuzz=3 < mount.patch
+          echo "CONFIG_NOMOUNT_FS=y" >> ./arch/arm64/configs/gki_defconfig
+          # echo "KBUILD_CFLAGS += -Wno-unused-variable"  >> Makefile
           
       - name: Some fixes/patches
         run: |
