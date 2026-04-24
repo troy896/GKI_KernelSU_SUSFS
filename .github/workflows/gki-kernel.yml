@@ -175,8 +175,7 @@ jobs:
 
           # Clone repositories using the branch names
           git clone https://github.com/coolzyd9107/AnyKernel3.git
-          # git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH"
-          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b 6cbc44c6f9263c021e75c3ea451af2d986765582
+          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH"
           git clone https://github.com/WildKernels/kernel_patches.git
           # Sukisu的补丁仓库
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
@@ -184,6 +183,8 @@ jobs:
           git clone https://github.com/zzh20188/GKI_KernelSU_SUSFS.git zzh
           git clone https://github.com/Numbersf/Action-Build.git -b "ReSukiSU"
           git clone https://github.com/ahmed-alnassif/GKI-Duchamp.git duchamp
+          cd susfs4ksu
+          git checkout 6cbc44c6f9263c021e75c3ea451af2d986765582
 
       - name: Initialize and synchronize kernel source code
         run: |
