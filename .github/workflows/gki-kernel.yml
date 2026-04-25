@@ -418,6 +418,7 @@ jobs:
 
       - name: Fix modules.bzl
         shell: bash
+        if: false
         working-directory: ${{ github.workspace }}/android14-6.1-157
         run: |
           if [[ "${{ inputs.kernel_version }}" == "6.1" || "${{ inputs.kernel_version }}" == "6.6" || "${{ inputs.kernel_version }}" == "6.12" ]]; then
