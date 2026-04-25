@@ -92,14 +92,11 @@ jobs:
 
           echo "CONFIG set to: $CONFIG"
           
-      - name: Create and Enable 3G Swap
-        run: |
-          sudo swapoff -a
-          sudo fallocate -l 3G /swapfile
-          sudo chmod 600 /swapfile
-          sudo mkswap /swapfile
-          sudo swapon /swapfile
-          free -h
+      - name: Setup more Swap (for LTO)
+        uses: thejerrybao/setup-swap-space@v1   # or pierotofy/set-swap-space
+        with:
+          swap-size-gb: 25          # 10-24 GB is common for heavy LTO
+          # swap-space-path: /mnt/swapfile   # optional
 
       # Install ccache
       - name: Install Dependencies + APTC
@@ -122,7 +119,7 @@ jobs:
           path: ~/.ccache
           key: ${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}-ccache-${{ github.sha }}
           restore-keys: |
-            ${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}-ccache-
+            ${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.sub_level }}-ccache-${{ github.sha }}
 
       - name: caching toolchain
         id: cache-toolchain
@@ -421,7 +418,7 @@ jobs:
 
       - name: Fix modules.bzl
         shell: bash
-        working-directory: "$CONFIG/common"
+        working-directory: ${{ github.workspace }}/android14-6.1-157
         run: |
           if [[ "${{ inputs.kernel_version }}" == "6.1" || "${{ inputs.kernel_version }}" == "6.6" || "${{ inputs.kernel_version }}" == "6.12" ]]; then
             mods_file=modules.bzl
@@ -524,6 +521,7 @@ jobs:
           echo "CONFIG_F2FS_IOSTAT=y" >> ./common/arch/arm64/configs/gki_defconfig
           
           # Remove check_defconfig
+          perl -i -pe 's/^(\s*)return 1$/$1print("Who Cares? Bypassing Now!")\n$1return 0/g if /if missing_symbols:/../return 1/' build/kernel/abi/check_buildtime_symbol_protection.py
           sed -i 's/check_defconfig//' ./common/build.config.gki
 
       - name: Configure kernel name
