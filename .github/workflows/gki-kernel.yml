@@ -308,17 +308,7 @@ jobs:
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Applying SUSFS patches for SukiSU..."
             cd ./common
-            FIX_NAMESPACE=0
-            if grep -q '^#include <trace/hooks/blk.h>$' fs/namespace.c; then
-             sed -i '/^#include <trace\/hooks\/blk.h>$/d' fs/namespace.c
-             FIX_NAMESPACE=1
-            fi
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
-            if [ "$FIX_NAMESPACE" = "1" ]; then
-             sed -i '/^#include "internal.h"$/a #include <trace/hooks/blk.h>' fs/namespace.c
-            fi
-            wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/wild/susfs_fix_patches/v2.1.0/a14-6.1/base.c.patch
-            patch -p1 --fuzz=3 < base.c.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
@@ -346,9 +336,9 @@ jobs:
           ADD_PTRACE="false"
           ADD_PERF="true"
           KERNEL_VER="${{ inputs.kernel_version }}"
-          # wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/bbrv3.patch
-          wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/bbr/bbrv3-android14-6.1.patch
-          patch -p1 < bbrv3-android14-6.1.patch || true
+          wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/bbrv3.patch
+          # wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/bbr/bbrv3-android14-6.1.patch
+          patch -p1 --fuzz=3 < bbrv3.patch || true
           cp "$GITHUB_WORKSPACE/unicode_bypass_fix_6.1.patch" ./
           patch -p1 --fuzz=3 < unicode_bypass_fix_6.1.patch || true
           # cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
@@ -379,55 +369,6 @@ jobs:
             TARGET_FILE="$CONFIG/common/kernel/module.c"
           fi
           sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
-          cd "$CONFIG"
-          rm -rf common/android/abi_gki_protected_exports_*
-
-          if ls -1 common/android/abi_gki_protected_exports_* >/dev/null 2>&1; then
-            echo "Error: abi_gki_protected_exports_* still exists after removal"
-            ls -la common/android/abi_gki_protected_exports_* || true
-            exit 1
-          fi
-
-          if grep -q '"protected_exports_list"[[:space:]]*:[[:space:]]*"android/abi_gki_protected_exports_aarch64"' common/BUILD.bazel; then
-            BEFORE_BUILD_BAZEL_SHA="$(sha256sum common/BUILD.bazel | awk '{print $1}')"
-            perl -pi -e 's/^\s*"protected_exports_list"\s*:\s*"android\/abi_gki_protected_exports_aarch64",\s*$//;' common/BUILD.bazel
-            AFTER_BUILD_BAZEL_SHA="$(sha256sum common/BUILD.bazel | awk '{print $1}')"
-            if [ "$BEFORE_BUILD_BAZEL_SHA" = "$AFTER_BUILD_BAZEL_SHA" ]; then
-              echo "Error: common/BUILD.bazel was not modified"
-              exit 1
-            fi
-            if grep -q '"protected_exports_list"[[:space:]]*:[[:space:]]*"android/abi_gki_protected_exports_aarch64"' common/BUILD.bazel; then
-              echo "Error: protected_exports_list reference still present in common/BUILD.bazel"
-              exit 1
-            fi
-          fi
-
-          if grep -q '^protected_modules = ' common/modules.bzl; then
-            BEFORE_MODULES_BZL_SHA="$(sha256sum common/modules.bzl | awk '{print $1}')"
-            sed -i 's/protected_modules = \[.*\]/protected_modules = []/' common/modules.bzl
-            AFTER_MODULES_BZL_SHA="$(sha256sum common/modules.bzl | awk '{print $1}')"
-            if [ "$BEFORE_MODULES_BZL_SHA" = "$AFTER_MODULES_BZL_SHA" ]; then
-              echo "Error: common/modules.bzl was not modified"
-              exit 1
-            fi
-            if ! grep -q '^protected_modules = \[\]' common/modules.bzl; then
-              echo "Error: protected_modules was not set to [] in common/modules.bzl"
-              exit 1
-            fi
-          fi
-
-      - name: Fix modules.bzl
-        shell: bash
-        if: false
-        working-directory: ${{ github.workspace }}/android14-6.1-157
-        run: |
-          if [[ "${{ inputs.kernel_version }}" == "6.1" || "${{ inputs.kernel_version }}" == "6.6" || "${{ inputs.kernel_version }}" == "6.12" ]]; then
-            mods_file=modules.bzl
-            for m in "net/ipv4/tcp_bic.ko" "net/ipv4/tcp_htcp.ko" "net/ipv4/tcp_westwood.ko"; do
-              grep -q "'$m'" "$mods_file" && continue
-              sed -i "/_ARM64_GKI_MODULES_LIST = \[/,/^]/ s/^]/    \"$m\",\n]/" "$mods_file"
-            done
-          fi
           
       - name: Add SUSFS configuration settings
         run: |
@@ -442,7 +383,7 @@ jobs:
             echo "CONFIG_KSU_KPROBES_HOOK=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_SUSFS_SUS_SU=n" >> ./common/arch/arm64/configs/gki_defconfig
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
-            echo "CONFIG_KPM=y" >> ./common/arch/arm64/configs/gki_defconfig
+            echo "CONFIG_KPM=n" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_SUSFS=y" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_SUSFS_SUS_MAP=y" >> ./common/arch/arm64/configs/gki_defconfig
             echo "CONFIG_KSU_SUSFS_SUS_PATH=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -515,14 +456,14 @@ jobs:
           echo "CONFIG_F2FS_FS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_F2FS_FS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_F2FS_FS_COMPRESSION=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_DEFAULT_TCP_CONG="bbr"" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_DEFAULT_TCP_CONG=bbr" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_NETFILTER=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_NETFILTER_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_F2FS_IOSTAT=y" >> ./common/arch/arm64/configs/gki_defconfig
           
           # Remove check_defconfig
-          perl -i -pe 's/^(\s*)return 1$/$1print("Who Cares? Bypassing Now!")\n$1return 0/g if /if missing_symbols:/../return 1/' build/kernel/abi/check_buildtime_symbol_protection.py
+          perl -i -pe 's/^(\s*)return 1$/$1return 0/g if /if missing_symbols:/../return 1/' build/kernel/abi/check_buildtime_symbol_protection.py
           sed -i 's/check_defconfig//' ./common/build.config.gki
 
       - name: Configure kernel name
