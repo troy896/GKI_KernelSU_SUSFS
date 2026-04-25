@@ -138,7 +138,7 @@ jobs:
         if: steps.cache-toolchain.outputs.cache-hit != 'true'
         run: |
           AOSP_MIRROR=https://android.googlesource.com
-          BRANCH=main-kernel-build-2024
+          BRANCH=main-kernel-2025
           git clone $AOSP_MIRROR/kernel/prebuilts/build-tools -b $BRANCH --depth 1 kernel-build-tools
           git clone $AOSP_MIRROR/platform/system/tools/mkbootimg -b $BRANCH --depth 1 mkbootimg
 
@@ -193,7 +193,7 @@ jobs:
           # Initialize and sync kernel source
           echo "Initializing and syncing kernel source..."
           FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}-${{ inputs.os_patch_level }}"
-          $REPO init --depth=1 --u https://android.googlesource.com/kernel/manifest -b common-${FORMATTED_BRANCH} --repo-rev=v2.16
+          $REPO init -u https://android.googlesource.com/kernel/manifest -b common-${FORMATTED_BRANCH} --depth=1 --partial-clone --clone-filter=blob:limit=10M
           REMOTE_BRANCH=$(git ls-remote https://android.googlesource.com/kernel/common ${FORMATTED_BRANCH})
           DEFAULT_MANIFEST_PATH=.repo/manifests/default.xml
           # Check if branch is deprecated
@@ -203,7 +203,7 @@ jobs:
           fi
           # Sync repo and apply patches
           $REPO --version
-          $REPO --trace sync -c -j$(nproc --all) --no-tags --fail-fast
+          $REPO --trace sync -c -j$(nproc --all) --fail-fast --no-tags --force-sync --no-clone-bundle
           echo "REMOTE_BRANCH=$REMOTE_BRANCH" >> $GITHUB_ENV
 
           FORMATTED_BRANCH="${{ inputs.android_version }}-${{ inputs.kernel_version }}"
@@ -383,14 +383,47 @@ jobs:
           fi
           sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
           cd "$CONFIG"
-          wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/wild/bypass_patches/abi_bypass_gki.patch
-          patch -p1 < abi_bypass_gki.patch || true
+          rm -rf common/android/abi_gki_protected_exports_*
+
+          if ls -1 common/android/abi_gki_protected_exports_* >/dev/null 2>&1; then
+            echo "Error: abi_gki_protected_exports_* still exists after removal"
+            ls -la common/android/abi_gki_protected_exports_* || true
+            exit 1
+          fi
+
+          if grep -q '"protected_exports_list"[[:space:]]*:[[:space:]]*"android/abi_gki_protected_exports_aarch64"' common/BUILD.bazel; then
+            BEFORE_BUILD_BAZEL_SHA="$(sha256sum common/BUILD.bazel | awk '{print $1}')"
+            perl -pi -e 's/^\s*"protected_exports_list"\s*:\s*"android\/abi_gki_protected_exports_aarch64",\s*$//;' common/BUILD.bazel
+            AFTER_BUILD_BAZEL_SHA="$(sha256sum common/BUILD.bazel | awk '{print $1}')"
+            if [ "$BEFORE_BUILD_BAZEL_SHA" = "$AFTER_BUILD_BAZEL_SHA" ]; then
+              echo "Error: common/BUILD.bazel was not modified"
+              exit 1
+            fi
+            if grep -q '"protected_exports_list"[[:space:]]*:[[:space:]]*"android/abi_gki_protected_exports_aarch64"' common/BUILD.bazel; then
+              echo "Error: protected_exports_list reference still present in common/BUILD.bazel"
+              exit 1
+            fi
+          fi
+
+          if grep -q '^protected_modules = ' common/modules.bzl; then
+            BEFORE_MODULES_BZL_SHA="$(sha256sum common/modules.bzl | awk '{print $1}')"
+            sed -i 's/protected_modules = \[.*\]/protected_modules = []/' common/modules.bzl
+            AFTER_MODULES_BZL_SHA="$(sha256sum common/modules.bzl | awk '{print $1}')"
+            if [ "$BEFORE_MODULES_BZL_SHA" = "$AFTER_MODULES_BZL_SHA" ]; then
+              echo "Error: common/modules.bzl was not modified"
+              exit 1
+            fi
+            if ! grep -q '^protected_modules = \[\]' common/modules.bzl; then
+              echo "Error: protected_modules was not set to [] in common/modules.bzl"
+              exit 1
+            fi
+          fi
 
       - name: Fix modules.bzl
         shell: bash
         working-directory: "$CONFIG/common"
         run: |
-          if [ "${{ inputs.kernel_version }}" = "6.1" ]; then
+          if [[ "${{ inputs.kernel_version }}" == "6.1" || "${{ inputs.kernel_version }}" == "6.6" || "${{ inputs.kernel_version }}" == "6.12" ]]; then
             mods_file=modules.bzl
             for m in "net/ipv4/tcp_bic.ko" "net/ipv4/tcp_htcp.ko" "net/ipv4/tcp_westwood.ko"; do
               grep -q "'$m'" "$mods_file" && continue
