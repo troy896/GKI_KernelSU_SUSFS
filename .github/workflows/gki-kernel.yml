@@ -388,7 +388,6 @@ jobs:
 
       - name: Fix modules.bzl
         shell: bash
-        if: false
         working-directory: "$CONFIG/common"
         run: |
           if [ "${{ inputs.kernel_version }}" = "6.1" ]; then
