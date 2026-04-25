@@ -320,7 +320,6 @@ jobs:
             if [ "$FIX_NAMESPACE" = "1" ]; then
              sed -i '/^#include "internal.h"$/a #include <trace/hooks/blk.h>' fs/namespace.c
             fi
-            sed -i -e 's/goto show_pad;/return 0;/' ./fs/proc/task_mmu.c
             wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/wild/susfs_fix_patches/v2.1.0/a14-6.1/base.c.patch
             patch -p1 --fuzz=3 < base.c.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
@@ -358,10 +357,8 @@ jobs:
           # cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
           # bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
           cd ..
-          wget https://raw.githubusercontent.com/EmberHeart-Kernels/kernel_patches/refs/heads/main/bypass_patches/abi_bypass_v2.patch
-          wget https://raw.githubusercontent.com/EmberHeart-Kernels/kernel_patches/refs/heads/main/bypass_patches/abi_bypass_v1.patch
-          patch -p1 --fuzz=3 < abi_bypass_v1.patch || true
-          patch -p1 --fuzz=3 < abi_bypass_v2.patch || true
+          wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/wild/bypass_patches/abi_bypass_gki.patch
+          patch -p1 --fuzz=3 < abi_bypass_gki.patch || true
 
       - name: 配置 ZRAM LZ4 补丁栈
         if: ${{ inputs.use_zram }}
