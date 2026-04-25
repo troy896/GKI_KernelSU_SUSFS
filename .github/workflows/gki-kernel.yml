@@ -357,10 +357,11 @@ jobs:
           patch -p1 --fuzz=3 < unicode_bypass_fix_6.1.patch || true
           # cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
           # bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
+          cd ..
           wget https://raw.githubusercontent.com/EmberHeart-Kernels/kernel_patches/refs/heads/main/bypass_patches/abi_bypass_v2.patch
           wget https://raw.githubusercontent.com/EmberHeart-Kernels/kernel_patches/refs/heads/main/bypass_patches/abi_bypass_v1.patch
-          patch -p1 --fuzz=3 < abi_bypass_v1.patch
-          patch -p1 --fuzz=3 < abi_bypass_v2.patch
+          patch -p1 --fuzz=3 < abi_bypass_v1.patch || true
+          patch -p1 --fuzz=3 < abi_bypass_v2.patch || true
 
       - name: 配置 ZRAM LZ4 补丁栈
         if: ${{ inputs.use_zram }}
