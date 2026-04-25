@@ -351,19 +351,14 @@ jobs:
           KERNEL_VER="${{ inputs.kernel_version }}"
           # wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/bbrv3.patch
           wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/bbr/bbrv3-android14-6.1.patch
-          patch -p1 --fuzz=3 < bbrv3-android14-6.1.patch || true
-          mods_file=modules.bzl
-          for m in "net/ipv4/tcp_bic.ko" "net/ipv4/tcp_htcp.ko" "net/ipv4/tcp_westwood.ko"; do
-            grep -q "'$m'" "$mods_file" && continue
-            sed -i "/_ARM64_GKI_MODULES_LIST = \[/,/^]/ s/^]/    \"$m\",\n]/" "$mods_file"
-          done
+          patch -p1 < bbrv3-android14-6.1.patch || true
           cp "$GITHUB_WORKSPACE/unicode_bypass_fix_6.1.patch" ./
           patch -p1 --fuzz=3 < unicode_bypass_fix_6.1.patch || true
           # cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
           # bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
           cd "$CONFIG"
           wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/wild/bypass_patches/abi_bypass_gki.patch
-          patch -p1 --fuzz=3 < abi_bypass_gki.patch || true
+          patch -p1 < abi_bypass_gki.patch || true
 
       - name: 配置 ZRAM LZ4 补丁栈
         if: ${{ inputs.use_zram }}
@@ -390,6 +385,19 @@ jobs:
             TARGET_FILE="$CONFIG/common/kernel/module.c"
           fi
           sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
+
+      - name: Fix modules.bzl
+        shell: bash
+        if: false
+        working-directory: "$CONFIG/common"
+        run: |
+          if [ "${{ inputs.kernel_version }}" = "6.1" ]; then
+            mods_file=modules.bzl
+            for m in "net/ipv4/tcp_bic.ko" "net/ipv4/tcp_htcp.ko" "net/ipv4/tcp_westwood.ko"; do
+              grep -q "'$m'" "$mods_file" && continue
+              sed -i "/_ARM64_GKI_MODULES_LIST = \[/,/^]/ s/^]/    \"$m\",\n]/" "$mods_file"
+            done
+          fi
           
       - name: Add SUSFS configuration settings
         run: |
