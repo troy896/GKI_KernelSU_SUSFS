@@ -356,9 +356,6 @@ jobs:
           patch -p1 --fuzz=3 < unicode_bypass_fix_6.1.patch || true
           # cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
           # bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
-          cd "$CONFIG"
-          wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/wild/bypass_patches/abi_bypass_gki.patch
-          patch -p1 < abi_bypass_gki.patch || true
 
       - name: 配置 ZRAM LZ4 补丁栈
         if: ${{ inputs.use_zram }}
@@ -385,6 +382,9 @@ jobs:
             TARGET_FILE="$CONFIG/common/kernel/module.c"
           fi
           sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
+          cd "$CONFIG"
+          wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/wild/bypass_patches/abi_bypass_gki.patch
+          patch -p1 < abi_bypass_gki.patch || true
 
       - name: Fix modules.bzl
         shell: bash
