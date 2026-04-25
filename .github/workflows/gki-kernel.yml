@@ -311,8 +311,20 @@ jobs:
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Applying SUSFS patches for SukiSU..."
             cd ./common
+            FIX_NAMESPACE=0
+            if [ "${{ inputs.kernel_version }}" = "6.1" ]; then
+             if grep -q '^#include <trace/hooks/blk.h>$' fs/namespace.c; then
+              sed -i '/^#include <trace\/hooks\/blk.h>$/d' fs/namespace.c
+              FIX_NAMESPACE=1
+             fi
+            fi
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
-            # patch -p1 --fuzz=3 < fs_proc_base.c-fix-k6.1.patch || true
+            if [ "$FIX_NAMESPACE" = "1" ]; then
+             sed -i '/^#include "internal.h"$/a #include <trace/hooks/blk.h>' fs/namespace.c
+            fi
+            sed -i -e 's/goto show_pad;/return 0;/' ./fs/proc/task_mmu.c
+            wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/wild/susfs_fix_patches/v2.1.0/a14-6.1/base.c.patch
+            patch -p1 --fuzz=3 < base.c.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
