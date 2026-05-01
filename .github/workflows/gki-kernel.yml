@@ -104,13 +104,20 @@ jobs:
       - name: Install Dependencies + APTC
         uses: Numbersf/cache-apt-pkgs-action@latest
         with: 
-          packages: ccache python3 git curl build-essential libssl-dev bison flex libelf-dev dwarves
+          packages: python3 git curl libelf-dev build-essential flex bison libssl-dev libncurses-dev liblz4-tool zlib1g-dev libxml2-utils rsync unzip gawk dos2unix kmod libdw-dev elfutils
           execute_install_scripts: true
 
+      - name: Install Ccache-ECS
+        run: |
+         LIB_DIR="${GITHUB_WORKSPACE}/lib"
+         sudo cp -f "$LIB_DIR/ccache" /usr/bin/ccache && sudo chmod +x /usr/bin/ccache
+         
       - name: Configure ccache
         run: |
           mkdir -p ~/.cache/bazel
+          mkdir -p ~/.ccache
           ccache --version
+          ccache --max-size=5G
           ccache --set-config=compression=true
           echo "CCACHE_DIR=$HOME/.ccache" >> $GITHUB_ENV
 
