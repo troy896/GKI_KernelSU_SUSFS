@@ -365,16 +365,13 @@ jobs:
           if [ -f "fs/f2fs/Makefile" ] && ! grep -qF "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" "fs/f2fs/Makefile"; then
             echo "f2fs-\$(CONFIG_F2FS_IOSTAT) += iostat.o" >> "fs/f2fs/Makefile"
           fi
+          sed -i 's/CONFIG_ZRAM_DEF_COMP/"lz4"/' ./drivers/block/zram/zram_drv.c
           
       - name: Apply Module Check Bypass
         run: |
-          if [[ "${{ inputs.kernel_version }}" == "6.1" || "${{ inputs.kernel_version }}" == "6.6" || "${{ inputs.kernel_version }}" == "6.12" ]]; then
-            TARGET_FILE="$CONFIG/common/kernel/module/version.c"
-          else
-            TARGET_FILE="$CONFIG/common/kernel/module.c"
-          fi
-          sed -i '/bad_version:/{:a;n;/return 0;/{s/return 0;/return 1;/;b};ba}' "$TARGET_FILE"
-          
+          cd "$CONFIG"
+          cp "$GITHUB_WORKSPACE/abi.patch" ./
+          patch -p1 --fuzz=3 < abi.patch || true
       - name: Add SUSFS configuration settings
         run: |
           echo "Changed to configuration directory: $CONFIG..."
@@ -446,7 +443,7 @@ jobs:
           echo "CONFIG_IP_SET_HASH_NETIFACE=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET_LIST_SET=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_NF_CONNTRACK=y" >> ./common/arch/arm64/configs/gki_defconfig
-          # echo "CONFIG_NF_TABLES=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_DEFAULT_TCP_CONG="bbr"" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CPU_FREQ=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_CPU_FREQ_GOV_ONDEMAND=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -468,7 +465,6 @@ jobs:
           echo "CONFIG_F2FS_IOSTAT=y" >> ./common/arch/arm64/configs/gki_defconfig
           
           # Remove check_defconfig
-          perl -i -pe 's/^(\s*)return 1$/$1return 0/g if /if missing_symbols:/../return 1/' build/kernel/abi/check_buildtime_symbol_protection.py
           sed -i 's/check_defconfig//' ./common/build.config.gki
 
       - name: Configure kernel name
