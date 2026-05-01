@@ -347,15 +347,15 @@ jobs:
           patch -p1 --fuzz=3 < bbrv3.patch || true
           wget https://raw.githubusercontent.com/infectedmushi/kernel_patches/4cbfb5f8c15acf6b3b797151a54a3a56dc6a843e/fix-clidr-uninitialized.patch
           wget https://github.com/OnePlus-12-Development/android_kernel_qcom_sm8650/commit/3e0cb08.patch
-          wget https://github.com/kerneltoast/android_kernel_google_tensynos/commit/48a3fd5e41.patch
+          # wget https://github.com/kerneltoast/android_kernel_google_tensynos/commit/48a3fd5e41.patch
           wget https://github.com/kerneltoast/android_kernel_google_tensynos/commit/201c5c7c99.patch
-          wget https://github.com/kerneltoast/android_kernel_google_tensynos/commit/56040db35c.patch
+          # wget https://github.com/kerneltoast/android_kernel_google_tensynos/commit/56040db35c.patch
           wget https://github.com/kerneltoast/android_kernel_google_tensynos/commit/627184a51c.patch
           patch -p1 --fuzz=3 < fix-clidr-uninitialized.patch || true
           patch -p1 --fuzz=3 < 3e0cb08.patch || true
           patch -p1 --fuzz=3 < 201c5c7c99.patch || true
-          patch -p1 --fuzz=3 < 48a3fd5e41.patch || true
-          patch -p1 --fuzz=3 < 56040db35c.patch || true
+          # patch -p1 --fuzz=3 < 48a3fd5e41.patch || true
+          # patch -p1 --fuzz=3 < 56040db35c.patch || true
           patch -p1 --fuzz=3 < 627184a51c.patch || true
           # cp "$GITHUB_WORKSPACE/unicode_bypass_fix_6.1.patch" ./
           # patch -p1 --fuzz=3 < unicode_bypass_fix_6.1.patch || true
