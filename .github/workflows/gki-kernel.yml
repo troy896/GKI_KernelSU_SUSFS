@@ -60,6 +60,8 @@ jobs:
       CCACHE_COMPILERCHECK: "%compiler% -dumpmachine; %compiler% -dumpversion"
       CCACHE_NOHASHDIR: "true"
       CCACHE_HARDLINK: "true"
+      CCACHE_IS_KERNEL_COMPILING: "true"
+      CCACHE_MAXSIZE: 5G
 
     steps:
       - name: 清理磁盘空间
@@ -100,7 +102,7 @@ jobs:
 
       # Install ccache
       - name: Install Dependencies + APTC
-        uses: jetthoughts/cache-apt-pkgs-action@fix/upgrade-actions-cache-v5
+        uses: Numbersf/cache-apt-pkgs-action@latest
         with: 
           packages: ccache python3 git curl build-essential libssl-dev bison flex libelf-dev dwarves
           execute_install_scripts: true
@@ -324,6 +326,7 @@ jobs:
               fi
               if [[ "$CURRENT_SUB" -le 141 || "$CURRENT_SUB" -ge 145 ]]; then
                 sed -i -e 's/goto show_pad;/return 0;/' ./fs/proc/task_mmu.c
+                sed -i 's/^show_pad:$/show_pad: __attribute__((__unused__));/' ./fs/proc/task_mmu.c
               fi
               # 修复 6.1 LTS: SUSFS 补丁在 namespace.c 头部 hunk 因上下文不匹配而失败，
               # 导致函数体中的 SUSFS 符号（DEFAULT_KSU_MNT_ID 等）未声明
