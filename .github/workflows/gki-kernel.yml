@@ -307,15 +307,10 @@ jobs:
           elif [ "${{ inputs.kernelsu_variant }}" == "SukiSU" ]; then
             echo "Applying SUSFS patches for SukiSU..."
             cd ./common
+            cp ../../duchamp/kernel-patches/susfs/fs_namespace.patch ./
             patch -p1 --fuzz=3 < 50_add_susfs_in_gki-${{ inputs.android_version }}-${{ inputs.kernel_version }}.patch || true
             echo "Applying SukiSU specific SUSFS patch..."
-            if grep -q 'DEFAULT_KSU_MNT_ID\|susfs_mnt_id_ida' ./fs/namespace.c && ! grep -qF '#include <linux/susfs_def.h>' ./fs/namespace.c; then
-              echo "检测到 namespace.c 缺少 susfs_def.h，注入声明..."
-              sed -i '/#include <linux\/mnt_idmapping.h>/a #ifdef CONFIG_KSU_SUSFS_SUS_MOUNT\n#include <linux\/susfs_def.h>\n#endif' ./fs/namespace.c
-              if ! grep -q 'extern bool susfs_is_current_ksu_domain' ./fs/namespace.c; then
-                sed -i '/#include "internal.h"/a \\n#ifdef CONFIG_KSU_SUSFS_SUS_MOUNT\nextern bool susfs_is_current_ksu_domain(void);\nextern bool susfs_is_sdcard_android_data_decrypted __read_mostly;\n\n#define CL_COPY_MNT_NS BIT(25)\n\nstatic DEFINE_IDA(susfs_mnt_id_ida);\nstatic DEFINE_IDA(susfs_mnt_group_ida);\n\n#endif' ./fs/namespace.c
-              fi
-            fi
+            patch -p1 --fuzz=3 < fs_namespace.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
@@ -347,20 +342,12 @@ jobs:
           patch -p1 --fuzz=3 < bbrv3.patch || true
           wget https://raw.githubusercontent.com/infectedmushi/kernel_patches/4cbfb5f8c15acf6b3b797151a54a3a56dc6a843e/fix-clidr-uninitialized.patch
           wget https://github.com/OnePlus-12-Development/android_kernel_qcom_sm8650/commit/3e0cb08.patch
-          # wget https://github.com/kerneltoast/android_kernel_google_tensynos/commit/48a3fd5e41.patch
-          wget https://github.com/kerneltoast/android_kernel_google_tensynos/commit/201c5c7c99.patch
-          # wget https://github.com/kerneltoast/android_kernel_google_tensynos/commit/56040db35c.patch
-          wget https://github.com/kerneltoast/android_kernel_google_tensynos/commit/627184a51c.patch
           patch -p1 --fuzz=3 < fix-clidr-uninitialized.patch || true
           patch -p1 --fuzz=3 < 3e0cb08.patch || true
-          patch -p1 --fuzz=3 < 201c5c7c99.patch || true
-          # patch -p1 --fuzz=3 < 48a3fd5e41.patch || true
-          # patch -p1 --fuzz=3 < 56040db35c.patch || true
-          patch -p1 --fuzz=3 < 627184a51c.patch || true
           # cp "$GITHUB_WORKSPACE/unicode_bypass_fix_6.1.patch" ./
           # patch -p1 --fuzz=3 < unicode_bypass_fix_6.1.patch || true
-          # cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
-          # bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
+          cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
+          bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
 
       - name: 配置 ZRAM LZ4 补丁栈
         if: ${{ inputs.use_zram }}
