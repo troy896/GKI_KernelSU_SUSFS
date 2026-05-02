@@ -344,6 +344,8 @@ jobs:
                 fi
               fi
             fi
+          wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/69_hide_stuff.patch
+          patch -p1 --fuzz=3 < 69_hide_stuff.patch || true
           elif [ "${{ inputs.kernelsu_variant }}" == "YukiSU" ]; then
             echo "Applying SUSFS patches for YukiSU..."
             cd ./KernelSU
