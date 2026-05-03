@@ -371,7 +371,7 @@ jobs:
           cd "$CONFIG/common"
           ADD_PTRACE="false"
           ADD_PERF="true"
-          KERNEL_PATCHES="$GITHUB_WORKSPACE/duchamp"
+          KERNEL_PATCHES="$GITHUB_WORKSPACE/duchamp/kernel-patches"
           KERNEL_VER="${{ inputs.kernel_version }}"
           wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/bbrv3.patch
           # wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/bbr/bbrv3-android14-6.1.patch
