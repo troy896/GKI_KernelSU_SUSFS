@@ -355,16 +355,12 @@ jobs:
             exit 1
           fi
           
-      - name: nomount
+      - name: Mirage
         if: ${{ inputs.use_hymofs }}
         run: |
-          git clone https://github.com/troy896/MountZero.git mountzero
-          cd "$CONFIG/common"
-          bash "$GITHUB_WORKSPACE/mountzero/project/integrate.sh"
-          wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/mount.patch
-          patch -p1 --fuzz=3 < mount.patch
-          echo "CONFIG_MOUNTZERO=y" >> ./arch/arm64/configs/gki_defconfig
-          echo "KBUILD_CFLAGS += -Wno-unused-variable"  >> Makefile
+          cd "$CONFIG"
+          curl -curl -LSs "https://raw.githubusercontent.com/maxsteeel/Mirage/master/setup.sh" | bash -
+          echo "CONFIG_MIRAGE=y" >> ./common/arch/arm64/configs/gki_defconfig
           
       - name: Some fixes/patches
         run: |
