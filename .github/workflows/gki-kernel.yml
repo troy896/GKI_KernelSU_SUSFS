@@ -359,7 +359,7 @@ jobs:
         if: ${{ inputs.use_hymofs }}
         run: |
           cd "$CONFIG"
-          curl -curl -LSs "https://raw.githubusercontent.com/maxsteeel/Mirage/master/setup.sh" | bash -
+          curl -curl -LSs "https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/Mirage/setup.sh" | bash -
           echo "CONFIG_MIRAGE=y" >> ./common/arch/arm64/configs/gki_defconfig
           
       - name: Some fixes/patches
