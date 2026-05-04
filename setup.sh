@@ -1,73 +1,85 @@
 #!/bin/sh
 set -eu
-
-KERNEL_ROOT=$(pwd)
+GKI_ROOT=$(pwd)
+OWNER="maxsteeel"
+REPO="Mirage"
+FS_DIR=""
 
 display_usage() {
     echo "Usage: $0 [--cleanup | <commit-or-tag>]"
-    echo "  --cleanup:              Cleans up previous modifications made by the script."
-    echo "  <commit-or-tag>:        Sets up or updates the KernelSU to specified tag or commit."
-    echo "  -h, --help:             Displays this usage information."
-    echo "  (no args):              Sets up or updates the KernelSU environment to the latest tagged version."
+    echo "  --cleanup:       Removes Mirage from the kernel tree."
+    echo "  <commit-or-tag>: Sets up Mirage to a specific version."
 }
 
 initialize_variables() {
-    if test -d "$KERNEL_ROOT/common/drivers"; then
-         DRIVER_DIR="$KERNEL_ROOT/common/drivers"
-    elif test -d "$KERNEL_ROOT/drivers"; then
-         DRIVER_DIR="$KERNEL_ROOT/drivers"
+    if [ -d "$GKI_ROOT/common/fs" ]; then
+        FS_DIR="$GKI_ROOT/common/fs"
+    elif [ -d "$GKI_ROOT/fs" ]; then
+        FS_DIR="$GKI_ROOT/fs"
     else
-         echo '[ERROR] "drivers/" directory not found.'
-         exit 127
+        echo '[ERROR] "fs/" directory not found. Are you in the kernel root?'
+        exit 127
     fi
-
-    DRIVER_MAKEFILE=$DRIVER_DIR/Makefile
-    DRIVER_KCONFIG=$DRIVER_DIR/Kconfig
+    FS_MAKEFILE=$FS_DIR/Makefile
+    FS_KCONFIG=$FS_DIR/Kconfig
 }
 
-# Reverts modifications made by this script
 perform_cleanup() {
-    echo "[+] Cleaning up..."
-    [ -L "$DRIVER_DIR/kernelsu" ] && rm "$DRIVER_DIR/kernelsu" && echo "[-] Symlink removed."
-    grep -q "kernelsu" "$DRIVER_MAKEFILE" && sed -i '/kernelsu/d' "$DRIVER_MAKEFILE" && echo "[-] Makefile reverted."
-    grep -q "kernelsu" "$DRIVER_KCONFIG" && sed -i '/kernelsu/d' "$DRIVER_KCONFIG" && echo "[-] Kconfig reverted."
-    if [ -d "$KERNEL_ROOT/KernelSU" ]; then
-        rm -rf "$KERNEL_ROOT/KernelSU" && echo "[-] KernelSU directory deleted."
+    echo "[+] Cleaning up Mirage..."
+    [ -L "$FS_DIR/mirage" ] && rm "$FS_DIR/mirage" && echo "[-] Symlink removed."
+    if [ -f "$FS_MAKEFILE" ]; then
+        sed -i '/mirage/d' "$FS_MAKEFILE" && echo "[-] Makefile reverted."
     fi
+    if [ -f "$FS_KCONFIG" ]; then
+        sed -i '/mirage\/Kconfig/d' "$FS_KCONFIG" && echo "[-] Kconfig reverted."
+    fi
+
+    if [ -d "$GKI_ROOT/$REPO" ]; then
+        echo "[?] Do you want to delete the repository directory $REPO? (y/n)"
+        read -r answer
+        if [ "$answer" = "y" ]; then
+            rm -rf "$GKI_ROOT/$REPO" && echo "[-] Repository deleted."
+        fi
+    fi
+    echo "[+] Done."
 }
 
-# Sets up or update KernelSU environment
-setup_kernelsu() {
-    echo "[+] Setting up KernelSU..."
-    # Clone the repository
-    if [ ! -d "$KERNEL_ROOT/KernelSU" ]; then
-        git clone https://github.com/Anatdx/YukiSU KernelSU
-        echo "[+] Repository cloned."
+setup_mirage() {
+    echo "[+] Setting up Mirage..."
+    if [ ! -d "$GKI_ROOT/$REPO" ]; then
+        git clone "https://github.com/$OWNER/$REPO" || { echo "[!] Clone failed"; exit 1; }
     fi
-    cd "$KERNEL_ROOT/KernelSU"
-    git stash && echo "[-] Stashed current changes."
-    if [ "$(git status | grep -Po 'v\d+(\.\d+)*' | head -n1)" ]; then
-        git checkout main && echo "[-] Switched to main branch."
-    fi
-    git pull && echo "[+] Repository updated."
+    cd "$GKI_ROOT/$REPO"
+    git fetch --all
     if [ -z "${1-}" ]; then
-        git checkout "$(git describe --abbrev=0 --tags)" && echo "[-] Checked out latest tag."
+        TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+        if [ -n "$TAG" ]; then
+            git checkout "$TAG" && echo "[-] Checked out tag $TAG"
+        else
+            git checkout master 2>/dev/null || echo "[!] Using current branch"
+        fi
     else
-        git checkout "$1" && echo "[-] Checked out $1." || echo "[-] Checkout default branch"
+        git checkout "$1" && echo "[-] Checked out $1."
     fi
-    cd "$DRIVER_DIR"
-    ln -sf "$(realpath --relative-to="$DRIVER_DIR" "$KERNEL_ROOT/KernelSU/kernel")" "kernelsu" && echo "[+] Symlink created."
+    cd "$FS_DIR"
+    ln -sf "$(realpath --relative-to="$FS_DIR" "$GKI_ROOT/$REPO/src")" "mirage"
+    echo "[+] Symlink created: fs/mirage -> $REPO/src"
+    if ! grep -q "mirage" "$FS_MAKEFILE"; then
+        printf "obj-\$(CONFIG_MIRAGE) += mirage  /\n" >> "$FS_MAKEFILE"
+        echo "[+] Modified fs/Makefile"
+    fi
+    if ! grep -q "mirage/Kconfig" "$FS_KCONFIG"; then
+        sed -i '$i source "fs/mirage/Kconfig"' "$FS_KCONFIG"
+        echo "[+] Modified fs/Kconfig"
+    fi
 
-    # Add entries in Makefile and Kconfig if not already existing
-    grep -q "kernelsu" "$DRIVER_MAKEFILE" || printf "\nobj-\$(CONFIG_KSU) += kernelsu/\n" >> "$DRIVER_MAKEFILE" && echo "[+] Modified Makefile."
-    grep -q 'source "drivers/kernelsu/Kconfig"' "$DRIVER_KCONFIG" || sed -i '/endmenu/i\source "drivers/kernelsu/Kconfig"' "$DRIVER_KCONFIG" && echo "[+] Modified Kconfig."
-    echo '[+] Done.'
+    echo '[+] Mirage is ready to be compiled!'
+    echo '[+] Run: make menuconfig and look for Mirage under File Systems'
 }
 
-# Process command-line arguments
 if [ "$#" -eq 0 ]; then
     initialize_variables
-    setup_kernelsu
+    setup_mirage
 elif [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
     display_usage
 elif [ "$1" = "--cleanup" ]; then
@@ -75,5 +87,5 @@ elif [ "$1" = "--cleanup" ]; then
     perform_cleanup
 else
     initialize_variables
-    setup_kernelsu "$@"
+    setup_mirage "$@"
 fi
