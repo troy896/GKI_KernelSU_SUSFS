@@ -418,7 +418,7 @@ jobs:
           echo "Applying log silencing patches"
           patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/silence_irq_cpu_logspam.patch"
           patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/silence_system_logspam.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/use_unlikely_wrap_cpufreq.patch"
+          # patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/use_unlikely_wrap_cpufreq.patch"
 
           echo "Applying unicode_bypass_fix_6.1.patch"
           patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/unicode_bypass_fix_6.1.patch"
