@@ -180,15 +180,7 @@ jobs:
 
           # Clone repositories using the branch names
           git clone https://github.com/coolzyd9107/AnyKernel3.git
-          # git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH"
-          git clone --depth=100 -q https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH"
-          cd susfs4ksu
-          git config --global user.email "troy896@gmail.com"
-          git config --global user.name "troy896"
-          git branch a14-6.1
-          git reset --hard 9bf72ec
-          git cherry-pick 4f12b29
-          cd ..
+          git clone https://gitlab.com/simonpunk/susfs4ksu.git -b "$SUSFS_BRANCH"
           git clone https://github.com/WildKernels/kernel_patches.git
           # Sukisu的补丁仓库
           git clone https://github.com/ShirkNeko/SukiSU_patch.git
