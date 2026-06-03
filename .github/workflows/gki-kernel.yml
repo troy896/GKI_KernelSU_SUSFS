@@ -233,7 +233,7 @@ jobs:
               case "$variant_input" in
                 "Official" | "MKSU") echo "BRANCH=-s main" >> $GITHUB_ENV ;;
                 "Next")              echo "BRANCH=-s next-susfs-dev" >> $GITHUB_ENV ;;
-                "SukiSU")           echo "BRANCH=-s 34e5e20e85e162020cc8c816a95222015d346068" >> $GITHUB_ENV ;;
+                "SukiSU")           echo "BRANCH=-s dev" >> $GITHUB_ENV ;;
                 "YukiSU")           echo "BRANCH=-s main" >> $GITHUB_ENV ;;
                 *) 
                   echo "Error: Variant '$variant_input' of development branch not defined" >&2
@@ -363,64 +363,11 @@ jobs:
       - name: Some fixes/patches
         run: |
           cd "$CONFIG/common"
-          ADD_PTRACE="false"
-          ADD_PERF="true"
           KERNEL_PATCHES="$GITHUB_WORKSPACE/duchamp/kernel-patches"
           KERNEL_VER="${{ inputs.kernel_version }}"
           wget https://raw.githubusercontent.com/troy896/GKI_KernelSU_SUSFS/refs/heads/main/bbrv3.patch
-          # wget https://raw.githubusercontent.com/WildKernels/kernel_patches/refs/heads/main/bbr/bbrv3-android14-6.1.patch
           patch -p1 --fuzz=3 < bbrv3.patch || true
-          wget https://raw.githubusercontent.com/infectedmushi/kernel_patches/4cbfb5f8c15acf6b3b797151a54a3a56dc6a843e/fix-clidr-uninitialized.patch
-          wget https://github.com/OnePlus-12-Development/android_kernel_qcom_sm8650/commit/3e0cb08.patch
-          patch -p1 --fuzz=3 < fix-clidr-uninitialized.patch || true
-          patch -p1 --fuzz=3 < 3e0cb08.patch || true
-          
-          echo "Applying common performance patches"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/optimized_mem_operations.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/file_struct_8bytes_align.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/reduce_cache_pressure.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/mem_opt_prefetch.patch"
-
-          echo "Applying architecture optimizations"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/optimise_memcmp.patch"
-
-          echo "Applying network, I/O & power management patches"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/minimise_wakeup_time.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/int_sqrt.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/force_tcp_nodelay.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/reduce_gc_thread_sleep_time.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/add_timeout_wakelocks_globally.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/f2fs_reduce_congestion.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/reduce_freeze_timeout.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/f2fs_enlarge_min_fsync_blocks.patch"
-
-          echo "Applying clear page alignment"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/clear_page_16bytes_align.patch"
-
-          echo "Applying CPU frequency & scheduler patches"
-          # patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/add_limitation_scaling_min_freq.patch"
-          # patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/re_write_limitation_scaling_min_freq.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/adjust_cpu_scan_order.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/avoid_extra_s2idle_wake_attempts.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/disable_cache_hot_buddy.patch"
-
-          echo "Applying filesystem & network tuning"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/increase_ext4_default_commit_age.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/increase_sk_mem_packets.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/reduce_pci_pme_wakeups.patch"
-
-          echo "Applying log silencing patches"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/silence_irq_cpu_logspam.patch"
-          patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/silence_system_logspam.patch"
-          # patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/use_unlikely_wrap_cpufreq.patch"
-
-          echo "Applying unicode_bypass_fix_6.1.patch"
           patch -p1 --fuzz=3 < "$KERNEL_PATCHES/common/unicode_bypass_fix_6.1.patch"
-
-          # cp "$GITHUB_WORKSPACE/unicode_bypass_fix_6.1.patch" ./
-          # patch -p1 --fuzz=3 < unicode_bypass_fix_6.1.patch || true
-          # cp "$GITHUB_WORKSPACE/apply-kernel-patches.sh" ./
-          # bash apply-kernel-patches.sh . "$KERNEL_VER" "$GITHUB_WORKSPACE/kernel_patches"
 
       - name: 配置 ZRAM LZ4 补丁栈
         if: ${{ inputs.use_zram }}
@@ -487,19 +434,8 @@ jobs:
           echo "CONFIG_TMPFS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
 
           # Add BBR Config
-          echo "CONFIG_IP_NF_TARGET_TTL=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP6_NF_TARGET_HL=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP6_NF_MATCH_HL=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_ADVANCED=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NET_SCH_FQ=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_CUBIC=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_BIC=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_WESTWOOD=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_TCP_CONG_HTCP=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_DEFAULT_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_IP_SET_MAX=256" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_IP_SET_MAX=65534" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET_BITMAP_IP=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET_BITMAP_IPMAC=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET_BITMAP_PORT=y" >> ./common/arch/arm64/configs/gki_defconfig
@@ -516,23 +452,20 @@ jobs:
           echo "CONFIG_IP_SET_HASH_NETPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET_HASH_NETIFACE=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_IP_SET_LIST_SET=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_NF_CONNTRACK=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_NETFILTER_XT_MATCH_ADDRTYPE=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_NETFILTER_XT_SET=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_IP6_NF_NAT=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_IP6_NF_TARGET_MASQUERADE=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_BIC=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_CUBIC=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_WESTWOOD=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_TCP_CONG_HTCP=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_DEFAULT_BBR=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_DEFAULT_TCP_CONG="bbr"" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CPU_FREQ=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CPU_FREQ_GOV_SCHEDUTIL=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_CPU_FREQ_GOV_ONDEMAND=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_OPTIMIZE_INLINING=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_BLK_DEV_ZRAM=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_ZRAM_DEF_COMP_LZ4=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_ZRAM_WRITEBACK=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_ZRAM_MEMORY_TRACKING=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_MQ_IOSCHED_DEADLINE=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_NET_SCH_FQ=y" >> ./common/arch/arm64/configs/gki_defconfig
+          echo "CONFIG_NET_SCH_FQ_CODEL=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_TOOLKIT_SUPPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_F2FS_FS=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_F2FS_FS_XATTR=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_F2FS_FS_POSIX_ACL=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_F2FS_FS_COMPRESSION=y" >> ./common/arch/arm64/configs/gki_defconfig
-          echo "CONFIG_RD_LZMA=y" >> ./common/arch/arm64/configs/gki_defconfig
           echo "CONFIG_KSU_MULTI_MANAGER_SUPPORT=y" >> ./common/arch/arm64/configs/gki_defconfig
           
           # Remove check_defconfig
